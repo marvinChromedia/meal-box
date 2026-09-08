@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { Alert } from '../../components/ui/Alert';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { Input } from '../../components/ui/Input';
+import { LoadingState } from '../../components/ui/LoadingState';
 import { GenerateConfirmationModal } from '../recipe-selection/GenerateConfirmationModal';
 import { useGenerateShoppingListFlow } from '../recipe-selection/useGenerateShoppingListFlow';
 import { useRecipeSelection } from '../recipe-selection/useRecipeSelection';
@@ -88,27 +91,21 @@ export function RecipeBox() {
       />
 
       {query.isPending ? (
-        <p className="text-sm text-gray-500" role="status">
-          Loading recipes…
-        </p>
+        <LoadingState label="Loading recipes…" />
       ) : query.isError ? (
-        <Alert variant="danger" title="Couldn't load recipes">
-          <p>{query.error.message}</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => query.refetch()}>
-            Try again
-          </Button>
-        </Alert>
+        <ErrorState title="Couldn't load recipes" message={query.error.message} onRetry={() => query.refetch()} />
       ) : query.data.length === 0 ? (
-        <Alert variant="info" title="No recipes yet">
-          Save your first recipe to see it here.
-        </Alert>
+        <EmptyState title="No recipes yet" description="Save your first recipe to see it here." />
       ) : filteredRecipes.length === 0 ? (
-        <Alert variant="info" title="No matches">
-          <p>No recipes match &ldquo;{searchTerm}&rdquo;.</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => setSearchTerm('')}>
-            Clear search
-          </Button>
-        </Alert>
+        <EmptyState
+          title="No matches"
+          description={`No recipes match "${searchTerm}".`}
+          action={
+            <Button variant="outline" size="sm" onClick={() => setSearchTerm('')}>
+              Clear search
+            </Button>
+          }
+        />
       ) : (
         <ul className="flex flex-col gap-3">
           {filteredRecipes.map((recipe) => (
