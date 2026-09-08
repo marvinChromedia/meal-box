@@ -49,6 +49,18 @@ npm run migrate:down -w backend
 - **Name migrations with a full timestamp**, not just a date: `20260908143000_create_recipes_table`. A date alone is not parseable as a timestamp — `node-pg-migrate` warns (`Can't determine timestamp for 20260908`) and falls back to sorting by filename, which silently breaks ordering as soon as two migrations share a date.
 - The two migrations already applied use the date-only form. **Do not rename them** — they are applied. Use the full-timestamp form from the next one onward, and check that a new migration sorts after them.
 
+### Never run `migrate:up` against the dev database from an unmerged branch
+
+Every worktree on a machine shares one local PostgreSQL. Running `npm run migrate:up -w backend` from a feature branch writes that branch's unmerged schema change into `recipe_box_dev`, where it is invisible to every other session — and `node-pg-migrate` then fails its order check for anyone else, because the database holds a migration that does not exist in `main`'s migrations directory. That has already happened once and cost another session time.
+
+For manual checks, point at the test database instead — `globalSetup` rebuilds it from scratch on every run — or create a separate database for your branch:
+
+```bash
+TEST_DATABASE_URL="postgres://localhost:5432/recipe_box_test" npm run test:integration -w backend
+```
+
+Do not fix someone else's contamination with `migrate:down` on shared state while they are still working. Tell the coordinating session.
+
 ## Current schema
 
 - `recipes` — id, title, steps `text[]`, tags `text[]`, is_favorite, timestamps
