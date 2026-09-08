@@ -78,6 +78,22 @@ A feature isn't done until it has tests at every applicable layer above, not jus
 - Every ticket that changes behavior gets a short feature doc at `docs/features/<TICKET-KEY>-<slug>.md`: what was built, why, and how it works — same pattern as `docs/design-system.md`.
 - Written when the ticket's work is verified, at the same time as the ticket comment below — not deferred.
 
+## Development flow
+
+The agreed loop for every piece of work. Steps 3–9 are the dev session's own responsibility.
+
+1. **The coordinating session ("Project Manager") takes the request** from the user — what should be built, changed or fixed.
+2. **It hands the work to a dev session** as a specific ticket key, saying what gates it. One ticket at a time per session.
+3. **Every dev session is connected to Beacon** (`beacon-production`). A session that cannot read and write its own tickets cannot follow this flow — say so immediately rather than working blind or asking someone to relay.
+4. **On starting: move the ticket to `IN_PROGRESS`** and post the start comment (session, branch, gate).
+5. **Tests are not optional.** Frontend work has a Playwright end-to-end test. Backend work has unit _and_ integration tests, plus API/contract tests wherever there is a Zod boundary. If a layer genuinely does not apply — a data layer with no screen, a frontend ticket touching no backend — say so explicitly in the completion comment and explain why. A layer that applies and is missing is not done; a layer that does not apply and is unexplained looks the same as one that was skipped.
+6. **Stuck or unsure? Ask the coordinating session.** Send it the question with enough context to answer, and it puts the decision to the user directly. Do not guess at a requirement you cannot read, and do not invent scope to fill a gap in a ticket — two sessions guessing produce work that has to be redone.
+7. **On finishing: post a detailed completion comment and move the ticket to `DONE`.** Plain-language summary first for a non-engineer, then the technical detail — what changed, which test layers ran, which acceptance criteria are covered, and any decision a later ticket needs. Before the merge, not after.
+8. **Commit** per Git / commits below: one commit for the branch, Conventional Commits subject with the ticket key, body a short bullet list a non-engineer can read, no `Co-Authored-By` and no tool attribution.
+9. **Merge to `main` yourself** per Merging a finished branch below — rebase, re-run the suite after the rebase, squash, `merge --ff-only`, push. Then add the merge SHA to the completion comment.
+
+The coordinating session still audits closed tickets against their acceptance criteria and reopens anything that did not meet the bar. Closing your own ticket is trusted, not unchecked — and an audit that finds nothing costs nobody anything.
+
 ## Working in parallel sessions
 
 Several sessions may work this repo at once. Any session can be handed any ticket — there are no fixed specialisms, and a session's scope is whatever ticket it was given.
@@ -118,8 +134,8 @@ Applies to every ticket worked on — Stories and sub-tasks alike. Don't post pr
 **Status discipline.** Beacon's `TEST` project has only TODO / IN_PROGRESS / DONE / CLOSED — no QA-handoff status, and don't invent one.
 
 - `TODO` → `IN_PROGRESS` when work actually starts, with the start comment.
-- Stays `IN_PROGRESS` through review and merge.
-- Only the coordinating session moves a ticket to `DONE`, after verifying it against its own acceptance criteria and definition of done — never the session that wrote the code.
+- Stays `IN_PROGRESS` while the work is in flight.
+- `IN_PROGRESS` → `DONE` by the session that did the work, when the completion comment is posted and the bar in Merging a finished branch is met. The coordinating session audits closed tickets afterwards and reopens any that fall short.
 
 ## Merging a finished branch
 
@@ -144,7 +160,7 @@ Then merge it, in this order:
 5. Add the merge commit SHA to the ticket's completion comment and tell the coordinating session it landed.
 6. **Do not remove the worktree you are running in.** A session whose working directory disappears can no longer be reached — it drops out of the project mid-flight, taking whatever it knew with it. Leave cleanup to the coordinating session, or move out of the directory first and only then remove it.
 
-Merging is self-serve; the audit trail and closing the ticket are not. Only the coordinating session moves a ticket to `DONE`, after checking it against its own acceptance criteria. Never force-push `main`.
+Merging and closing are both self-serve — the trail is what makes that safe, which is why the completion comment goes up before the merge rather than after. The coordinating session audits closed tickets and reopens anything short of the bar. Never force-push `main`.
 
 ## Tooling
 
