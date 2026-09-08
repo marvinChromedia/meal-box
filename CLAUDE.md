@@ -218,6 +218,8 @@ If a decision affects another ticket, the feature doc records it **and** you tel
 
 Two tests before you post: could a non-engineer read this and know what changed? Is everything a developer would need somewhere a developer will look? If either answer is no, the split is wrong.
 
+**The coordinating session's verification is appended to the summary comment, not added as a third.** Two comments per ticket means two, and that includes the check. Earlier tickets in this project have a separate audit comment — that predates this rule and is not the pattern to copy.
+
 ## 14. Definition of Done
 
 - [ ] Requirements understood; ticket read in full
