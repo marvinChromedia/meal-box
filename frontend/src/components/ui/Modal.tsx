@@ -21,16 +21,16 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+        className="relative w-full max-w-md rounded-card bg-surface p-6 shadow-soft"
       >
-        <h2 id="modal-title" className="text-lg font-semibold text-gray-900">
+        <h2 id="modal-title" className="font-display text-lg font-semibold text-ink">
           {title}
         </h2>
-        <div className="mt-3 text-sm text-gray-700">{children}</div>
+        <div className="mt-3 text-sm text-ink-muted">{children}</div>
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+          className="absolute right-4 top-4 text-ink-subtle hover:text-ink-muted"
           aria-label="Close"
         >
           &#x2715;

@@ -14,7 +14,7 @@ export function Textarea({ label, error, id, className, ...props }: TextareaProp
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={textareaId} className="text-sm font-medium text-gray-700">
+      <label htmlFor={textareaId} className="text-sm font-medium text-ink-muted">
         {label}
       </label>
       <textarea
@@ -22,9 +22,9 @@ export function Textarea({ label, error, id, className, ...props }: TextareaProp
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
         className={clsx(
-          'min-h-24 rounded-md border px-3 py-2 text-sm text-gray-900 shadow-sm',
-          'focus:outline-none focus:ring-2 focus:ring-blue-500',
-          error ? 'border-red-500' : 'border-gray-300',
+          'min-h-24 rounded-md border px-3 py-2 text-sm text-ink shadow-sm',
+          'focus:outline-none focus:ring-2 focus:ring-accent',
+          error ? 'border-red-500' : 'border-line-strong',
           className,
         )}
         {...props}

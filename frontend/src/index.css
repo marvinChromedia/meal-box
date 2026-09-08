@@ -1,1 +1,41 @@
 @import 'tailwindcss';
+
+@theme {
+  /* Accent — terracotta, primary actions and links */
+  --color-accent: #8c4a2f;
+  --color-accent-hover: #703b26;
+
+  /* Page background vs. a raised card/panel surface */
+  --color-ground: #faf7f2;
+  --color-surface: #fffbf5;
+
+  /* Borders */
+  --color-line: #e4d9cc;
+  --color-line-strong: #d9cbb9;
+
+  /* Text — warm grays. `ink` for primary content, `ink-muted` for
+     secondary/supporting text (both verified >= 4.5:1 on ground/surface —
+     see docs/design-system.md). `ink-subtle` is reserved for disabled
+     controls and icon-only glyphs, not for real body text — it only
+     clears the 3:1 non-text threshold, not 4.5:1. */
+  --color-ink: #2b2320;
+  --color-ink-muted: #6b5d54;
+  --color-ink-subtle: #8a7b6e;
+
+  /* Cards and other raised surfaces */
+  --radius-card: 0.75rem;
+  --shadow-soft:
+    0 2px 8px -2px rgb(140 74 47 / 0.12), 0 1px 2px rgb(140 74 47 / 0.06);
+
+  /* Headings only — see docs/design-system.md for where this does and
+     doesn't apply. Georgia/Times New Roman keep headings readable and at
+     roughly the same size if the webfont fails to load. */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+  }
+}

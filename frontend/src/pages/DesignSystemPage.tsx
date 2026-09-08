@@ -20,8 +20,8 @@ const BUTTON_VARIANTS: ButtonVariant[] = ['primary', 'secondary', 'outline', 'da
 const BUTTON_SIZES: ButtonSize[] = ['sm', 'md', 'lg'];
 
 const COLOR_SWATCHES: { name: string; classes: string[] }[] = [
-  { name: 'Blue (primary)', classes: ['bg-blue-100', 'bg-blue-400', 'bg-blue-600', 'bg-blue-800'] },
-  { name: 'Gray (neutral)', classes: ['bg-gray-100', 'bg-gray-400', 'bg-gray-600', 'bg-gray-800'] },
+  { name: 'Accent (terracotta)', classes: ['bg-ground', 'bg-surface', 'bg-accent', 'bg-accent-hover'] },
+  { name: 'Ink & line (neutral)', classes: ['bg-line', 'bg-line-strong', 'bg-ink-subtle', 'bg-ink'] },
   { name: 'Green (success)', classes: ['bg-green-100', 'bg-green-400', 'bg-green-600', 'bg-green-800'] },
   { name: 'Amber (warning)', classes: ['bg-amber-100', 'bg-amber-400', 'bg-amber-600', 'bg-amber-800'] },
   { name: 'Red (danger)', classes: ['bg-red-100', 'bg-red-400', 'bg-red-600', 'bg-red-800'] },
@@ -30,7 +30,7 @@ const COLOR_SWATCHES: { name: string; classes: string[] }[] = [
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+      <h2 className="font-display text-xl font-semibold text-ink">{title}</h2>
       {children}
     </section>
   );
@@ -42,15 +42,15 @@ export function DesignSystemPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-12 px-4 py-10 sm:px-6 lg:px-8">
       <header>
-        <h1 className="text-3xl font-bold text-gray-900">Design System</h1>
-        <p className="mt-1 text-gray-600">Reusable Tailwind-based UI components for Recipe Box.</p>
+        <h1 className="font-display text-3xl font-bold text-ink">Design System</h1>
+        <p className="mt-1 text-ink-muted">Reusable Tailwind-based UI components for Recipe Box.</p>
       </header>
 
       <Section title="Color palette">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {COLOR_SWATCHES.map((swatch) => (
             <div key={swatch.name} className="flex flex-col gap-2">
-              <p className="text-sm font-medium text-gray-700">{swatch.name}</p>
+              <p className="text-sm font-medium text-ink-muted">{swatch.name}</p>
               <div className="flex overflow-hidden rounded-md">
                 {swatch.classes.map((c) => (
                   <div key={c} className={`h-10 flex-1 ${c}`} />
@@ -63,12 +63,12 @@ export function DesignSystemPage() {
 
       <Section title="Typography">
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold text-gray-900">Heading 1</h1>
-          <h2 className="text-2xl font-semibold text-gray-900">Heading 2</h2>
-          <h3 className="text-xl font-semibold text-gray-900">Heading 3</h3>
-          <h4 className="text-lg font-medium text-gray-900">Heading 4</h4>
-          <p className="text-base text-gray-700">Body text — used for regular content.</p>
-          <p className="text-sm text-gray-500">Small / caption text.</p>
+          <h1 className="font-display text-3xl font-bold text-ink">Heading 1</h1>
+          <h2 className="font-display text-2xl font-semibold text-ink">Heading 2</h2>
+          <h3 className="font-display text-xl font-semibold text-ink">Heading 3</h3>
+          <h4 className="font-display text-lg font-medium text-ink">Heading 4</h4>
+          <p className="text-base text-ink-muted">Body text — used for regular content.</p>
+          <p className="text-sm text-ink-muted">Small / caption text.</p>
         </div>
       </Section>
 
@@ -95,7 +95,7 @@ export function DesignSystemPage() {
           <Input label="With error" placeholder="e.g. 2 cups flour" error="This field is required" />
           <div className="flex items-center gap-2">
             <Input label="Quantity (hideLabel example)" hideLabel type="number" defaultValue={2} className="w-20" />
-            <span className="text-sm text-gray-600">gallon — label is present for screen readers, hidden visually</span>
+            <span className="text-sm text-ink-muted">gallon — label is present for screen readers, hidden visually</span>
           </div>
           <Textarea label="Steps" placeholder="1. Boil water..." />
           <Select
@@ -157,7 +157,7 @@ export function DesignSystemPage() {
       <Section title="Empty, loading and error states">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-gray-700">EmptyState — with action</p>
+            <p className="text-sm font-medium text-ink-muted">EmptyState — with action</p>
             <EmptyState
               title="No recipes yet"
               description="Save your first recipe to start building your recipe box."
@@ -165,18 +165,18 @@ export function DesignSystemPage() {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-gray-700">EmptyState — description only</p>
+            <p className="text-sm font-medium text-ink-muted">EmptyState — description only</p>
             <EmptyState
               title="No shopping list yet"
               description="Select recipes and generate a list to see it here."
             />
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-gray-700">LoadingState</p>
+            <p className="text-sm font-medium text-ink-muted">LoadingState</p>
             <LoadingState label="Loading recipes…" rows={3} />
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-gray-700">ErrorState — with retry and code</p>
+            <p className="text-sm font-medium text-ink-muted">ErrorState — with retry and code</p>
             <ErrorState
               message="Couldn't load your recipes. Check your connection."
               code="NETWORK_ERROR"

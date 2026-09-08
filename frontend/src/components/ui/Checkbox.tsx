@@ -26,13 +26,13 @@ export function Checkbox({ label, id, className, size = 'sm', ...props }: Checkb
         id={checkboxId}
         type="checkbox"
         className={clsx(
-          'shrink-0 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500',
+          'shrink-0 rounded border-line-strong accent-accent focus:ring-2 focus:ring-accent',
           sizeClasses.box,
           className,
         )}
         {...props}
       />
-      <label htmlFor={checkboxId} className={clsx('text-gray-700', sizeClasses.label)}>
+      <label htmlFor={checkboxId} className={clsx('text-ink-muted', sizeClasses.label)}>
         {label}
       </label>
     </div>

@@ -4,6 +4,44 @@ Written reference for the components in `frontend/src/components/ui/`. This is t
 
 All components are Tailwind-classes-only (no `style` prop) and accept a `className` to extend/override, unless noted otherwise.
 
+## Theme
+
+Tailwind v4, tokens defined in an `@theme` block in `frontend/src/index.css` (no `tailwind.config.js` — this project has none, correctly, per Tailwind v4's CSS-first config). Every color/radius/shadow/font token below auto-generates the matching Tailwind utility (`--color-accent` → `bg-accent`/`text-accent`/`border-accent`/`accent-accent`/etc., `--radius-card` → `rounded-card`, `--shadow-soft` → `shadow-soft`, `--font-display` → `font-display`).
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--color-accent` | `#8C4A2F` | Primary actions, links, checked checkbox/radio (`accent-accent`, not `text-accent` — see below), focus rings |
+| `--color-accent-hover` | `#703B26` | Hover state for accent-colored buttons |
+| `--color-ground` | `#FAF7F2` | Page background (`body`, set once in `index.css`) |
+| `--color-surface` | `#FFFBF5` | Card/Modal panel background — a shade lighter than `ground` so a raised surface reads as raised even before its border/shadow are noticed |
+| `--color-line` | `#E4D9CC` | Low-emphasis borders/backgrounds (Card border, default Badge, secondary Button) |
+| `--color-line-strong` | `#D9CBB9` | Higher-emphasis borders (form field borders, outline Button, hover states) |
+| `--color-ink` | `#2B2320` | Primary text |
+| `--color-ink-muted` | `#6B5D54` | Secondary text — labels, descriptions, body copy |
+| `--color-ink-subtle` | `#8A7B6E` | Disabled-control text and icon-only glyphs **only** — see contrast note below |
+| `--radius-card` | `0.75rem` (12px) | Card, Modal panel, EmptyState, LoadingState's skeleton bars — anything that reads as a "surface." Buttons/inputs/badges keep their existing smaller radii; this ticket didn't touch those |
+| `--shadow-soft` | tinted with the accent hue | Card, Modal panel |
+| `--font-display` | `'Fraunces', Georgia, 'Times New Roman', serif` | Headings only — real `<h1>`–`<h4>` elements and `CardHeader`/Modal's `<h2>` title. **Not** applied to `EmptyState`/`ErrorState`'s bold `title` text — those are status/alert labels (`role="status"`/`role="alert"`), not headings |
+
+### Contrast, measured (WCAG AA: 4.5:1 normal text, 3:1 large text / non-text UI)
+
+- White text on `accent`: **6.70:1**
+- `accent` text/focus-ring on `ground`: **6.27:1** (clears both the 4.5:1 text threshold and the 3:1 non-text/focus-ring threshold)
+- `ink` (primary text) on `ground`: **14.4:1**
+- `ink-muted` on `ground`: **5.92:1**; on `surface`: **6.13:1**
+- `ink-subtle` on `ground`: **3.83:1** — clears 3:1 but not 4.5:1. This is why `ink-subtle` is used **only** for disabled controls (WCAG's contrast requirement doesn't apply to disabled UI) and icon-only glyphs like Modal's close button (a 3:1, non-text pairing). It is never used for real always-visible body text — text that was `gray-500` before (e.g. `CardFooter`) maps to `ink-muted`, not `ink-subtle`, specifically to stay above 4.5:1.
+- `Input`/`Textarea`'s error state (`border-red-500`, `text-red-600`) and `Alert`'s four variants are unchanged — they're semantic status colors, not part of this warm/neutral palette, and out of this ticket's scope.
+
+### Deliberate exceptions
+
+- **Modal's overlay scrim stays `bg-gray-900/50`**, not a warm/tinted color. A brand-tinted overlay looks like a stage light, not a dimming scrim — this is a neutral-on-purpose exception to "every color is a token."
+- **Checkbox/Radio use `accent-accent`, not `text-accent`.** There's no `@tailwindcss/forms` plugin or `accent-color` rule anywhere in this repo, so a `text-{color}` class was never actually controlling the native checked-state tint — the previous `text-blue-600` only visually matched because it happened to be close to Chrome's own default checkbox blue. Tailwind's `accent-*` utility (which sets the real `accent-color` CSS property browsers use for native checkbox/radio/range tinting) is the one that actually works; verified visually.
+- `Alert`'s `info`/`success`/`warning`/`danger` variants and `Badge`'s success/warning/danger variants keep their existing blue/green/amber/red — semantic status colors, deliberately not reassigned to the warm palette.
+
+### Font loading
+
+`Fraunces` (weights 600/700, variable optical-size axis) loaded via a Google Fonts `<link>` in `frontend/index.html` with `display=swap` and `preconnect` hints — `swap` means the fallback stack (`Georgia, 'Times New Roman', serif`) renders immediately and is swapped once the webfont loads, so there's no invisible-text window. Georgia and Fraunces are both serif with broadly similar proportions, so the reflow when the swap happens is small — headings are usually well above the fold and not something a user is mid-click on, satisfying AC5 without needing font-metric overrides.
+
 ## Button
 
 `frontend/src/components/ui/Button.tsx`

@@ -16,12 +16,12 @@ export function Radio({ label, id, className, ...props }: RadioProps) {
         id={radioId}
         type="radio"
         className={clsx(
-          'h-4 w-4 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500',
+          'h-4 w-4 border-line-strong accent-accent focus:ring-2 focus:ring-accent',
           className,
         )}
         {...props}
       />
-      <label htmlFor={radioId} className="text-sm text-gray-700">
+      <label htmlFor={radioId} className="text-sm text-ink-muted">
         {label}
       </label>
     </div>

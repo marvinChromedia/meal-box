@@ -13,14 +13,14 @@ export function EmptyState({ title, description, action, icon, className, ...pro
     <div
       role="status"
       className={clsx(
-        'flex flex-col items-center gap-3 rounded-lg border border-dashed border-gray-300 px-6 py-12 text-center',
+        'flex flex-col items-center gap-3 rounded-card border border-dashed border-line-strong px-6 py-12 text-center',
         className,
       )}
       {...props}
     >
       {icon}
-      <p className="text-base font-semibold text-gray-900">{title}</p>
-      {description ? <p className="max-w-sm text-sm text-gray-600">{description}</p> : null}
+      <p className="text-base font-semibold text-ink">{title}</p>
+      {description ? <p className="max-w-sm text-sm text-ink-muted">{description}</p> : null}
       {action ? <div className="mt-1">{action}</div> : null}
     </div>
   );

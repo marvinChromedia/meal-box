@@ -17,7 +17,7 @@ export function LoadingState({ label = 'Loading…', rows = 3, className, ...pro
     <div role="status" aria-busy="true" className={clsx('flex flex-col gap-3', className)} {...props}>
       <span className="sr-only">{label}</span>
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} aria-hidden="true" className="h-16 animate-pulse rounded-lg bg-gray-200" />
+        <div key={index} aria-hidden="true" className="h-16 animate-pulse rounded-card bg-line" />
       ))}
     </div>
   );
