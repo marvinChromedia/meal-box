@@ -15,17 +15,19 @@ grep -c "error TS" /tmp/build.txt
 
 ## Commands
 
-| Command                               | Scope                             | Verified                                            |
-| ------------------------------------- | --------------------------------- | --------------------------------------------------- |
-| `npm run lint`                        | ESLint, whole repo                | exit 0                                              |
-| `npm run build`                       | `tsc -b` + build, both workspaces | exit 0                                              |
-| `npm test -w frontend`                | Vitest + RTL                      | exit 0, 2 tests                                     |
-| `npm run test:unit -w backend`        | Unit, database mocked             | exit 0, 8 tests                                     |
-| `npm run test:integration -w backend` | Integration, real PostgreSQL      | exit 0, 10 tests — **requires `TEST_DATABASE_URL`** |
+| Command                               | Scope                                     | Verified                                            |
+| ------------------------------------- | ----------------------------------------- | --------------------------------------------------- |
+| `npm run lint`                        | ESLint, whole repo                        | exit 0                                              |
+| `npm run build`                       | `tsc -b` + build, both workspaces         | exit 0                                              |
+| `npm test -w frontend`                | Vitest + RTL                              | exit 0, 2 tests                                     |
+| `npm run test:unit -w backend`        | Unit, database mocked                     | exit 0, 14 tests                                    |
+| `npm run test:contract -w backend`    | Zod boundary schemas, no database or HTTP | exit 0, 12 tests                                    |
+| `npm run test:integration -w backend` | Integration, real PostgreSQL              | exit 0, 21 tests — **requires `TEST_DATABASE_URL`** |
+| `npm test -w backend`                 | All three backend layers in sequence      | exit 0, 47 tests — **requires `TEST_DATABASE_URL`** |
 
 ### The root `npm test` currently fails
 
-`npm test` runs frontend then backend, and backend's `test` chains `test:unit && test:integration`. Integration throws without `TEST_DATABASE_URL`, so on a clean shell the root command **exits 1** — frontend 2 passed, backend unit 8 passed, integration "no tests", overall failure.
+`npm test` runs frontend then backend, and backend's `test` chains `test:unit && test:contract && test:integration`. Integration throws without `TEST_DATABASE_URL`, so on a clean shell the root command **exits 1** — the frontend and the unit and contract layers pass, integration reports "no tests", and the run fails overall.
 
 Export the variable first:
 

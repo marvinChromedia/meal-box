@@ -41,4 +41,7 @@ Each layer has one job. Controllers parse, validate and shape responses. Service
 - `frontend/src/components/ui/` — ten UI components; see [`design-system.md`](./design-system.md).
 - `frontend/src/pages/DesignSystemPage.tsx` — the live gallery at `/design`.
 
-There is no service layer or controller layer in `backend/src/` yet — the repositories exist and the HTTP surface above them is still being built. Follow the layering when you add it rather than calling a repository from a route.
+- `backend/src/routes/`, `controllers/`, `services/`, `schemas/` — the HTTP surface for recipes, following the layering above. `createApp(pool)` takes an optional pool so tests can point it at the test database.
+- `backend/src/middleware/` — `validateBody` / `validateParams` (Zod at the boundary) and the async error handler.
+
+The shopping-list HTTP surface does not exist yet — its repository is there, its endpoints are not. Follow the layering when you add them rather than calling a repository from a route.

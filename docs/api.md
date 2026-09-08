@@ -1,6 +1,6 @@
 # API
 
-REST over Express. **Only one endpoint is implemented today.** The rest of this document is the conventions a new endpoint must follow, not a description of endpoints that exist.
+REST over Express. Recipes are implemented; the shopping list is not. The conventions below apply to anything new.
 
 ## Implemented
 
@@ -8,9 +8,27 @@ REST over Express. **Only one endpoint is implemented today.** The rest of this 
 
 Reports process and database connectivity. Used by the integration setup and for checking a local stack is actually up. It queries the database rather than returning a hardcoded value, so a failure here means PostgreSQL is unreachable.
 
+### `/api/recipes`
+
+Full CRUD, mounted in `backend/src/app.ts` and routed in `backend/src/routes/recipesRoutes.ts`:
+
+| Method   | Path               | Notes                                                                                   |
+| -------- | ------------------ | --------------------------------------------------------------------------------------- |
+| `POST`   | `/api/recipes`     | Body validated against `RecipeInput`; recipe and ingredients created in one transaction |
+| `GET`    | `/api/recipes`     | Lists recipes                                                                           |
+| `GET`    | `/api/recipes/:id` | `404` when absent, `400` when the id is malformed                                       |
+| `PUT`    | `/api/recipes/:id` | Replaces the ingredient set rather than patching rows — the frontend form matches this  |
+| `DELETE` | `/api/recipes/:id` | Reports whether a row existed; ingredient rows cascade                                  |
+
+Bodies go through `validateBody`, params through `validateParams`, and the boundary schemas are tied to `@recipe-box/shared`'s `RecipeInput` with `satisfies` so they cannot drift from the contract.
+
+Validation requires a non-empty title, at least one step and at least one ingredient. Tags may be empty, and unit may be empty because units are free text — a countable "2 onions" has no unit. The frontend form applies the same rules.
+
+**There is no search query parameter, deliberately** — recipe search filters client-side over the already-fetched list.
+
 ## Specified but not yet built
 
-`/api/recipes`, `/api/recipes/:id` and `/api/shopping-list` are specified in Beacon tickets (TEST-72, TEST-76) and do not exist in the code yet. Do not write client code against them as though they were live — see [`architecture.md`](./architecture.md) for the contract to build against, and use a typed mock at the `shared/` boundary until the endpoints land.
+`/api/shopping-list` is specified in Beacon ticket TEST-76 and does not exist yet. Do not write client code against it as though it were live — see [`architecture.md`](./architecture.md) for the contract to build against, and use a typed mock at the `shared/` boundary until it lands.
 
 ## Conventions for any new endpoint
 
