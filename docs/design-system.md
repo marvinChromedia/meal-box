@@ -9,6 +9,7 @@ All components are Tailwind-classes-only (no `style` prop) and accept a `classNa
 `frontend/src/components/ui/Button.tsx`
 
 Props: standard `<button>` attributes, plus:
+
 - `variant`: `primary` (default) | `secondary` | `outline` | `danger` | `ghost`
 - `size`: `sm` | `md` (default) | `lg`
 
@@ -23,18 +24,20 @@ Props: standard `<button>` attributes, plus:
 `frontend/src/components/ui/Input.tsx`
 
 Labeled text input. Props: standard `<input>` attributes, plus:
+
 - `label` (required)
-- `error?`: string — shows below the field and switches the border to red
+- `error?`: string — shows below the field, switches the border to red, and sets `aria-invalid="true"` plus `aria-describedby` pointing at the error message, so a screen reader announces it alongside the field
 
 ```tsx
 <Input label="Recipe title" placeholder="e.g. Tomato Pasta" />
+<Input label="Quantity" error="Quantity must be a number." />
 ```
 
 ## Textarea
 
 `frontend/src/components/ui/Textarea.tsx`
 
-Labeled multi-line input. Same shape as `Input` (`label`, `error?`), wraps a `<textarea>`.
+Labeled multi-line input. Same shape as `Input` (`label`, `error?`, including the same `aria-invalid`/`aria-describedby` wiring when `error` is set), wraps a `<textarea>`.
 
 ```tsx
 <Textarea label="Steps" placeholder="1. Boil water..." />
@@ -45,6 +48,7 @@ Labeled multi-line input. Same shape as `Input` (`label`, `error?`), wraps a `<t
 `frontend/src/components/ui/Select.tsx`
 
 Labeled dropdown. Props: standard `<select>` attributes, plus:
+
 - `label` (required)
 - `options`: `{ label: string; value: string }[]` (required)
 
@@ -63,6 +67,7 @@ Labeled dropdown. Props: standard `<select>` attributes, plus:
 `frontend/src/components/ui/Checkbox.tsx`
 
 Props: standard `<input type="checkbox">` attributes, plus:
+
 - `label` (required)
 - `size`: `sm` (default) | `lg` — `lg` for a bigger tap target, e.g. a checklist used one-handed (TEST-77)
 
@@ -87,6 +92,7 @@ Props: standard `<input type="radio">` attributes, plus `label` (required). Grou
 `frontend/src/components/ui/Badge.tsx`
 
 Props: standard `<span>` attributes, plus:
+
 - `variant`: `default` (default) | `success` | `warning` | `danger`
 
 ```tsx
@@ -115,6 +121,7 @@ Container with optional header/body/footer slots — compose the pieces you need
 `frontend/src/components/ui/Alert.tsx`
 
 Props: standard `<div>` attributes, plus:
+
 - `variant`: `info` (default) | `success` | `warning` | `danger`
 - `title?`: string
 
@@ -129,6 +136,7 @@ Props: standard `<div>` attributes, plus:
 `frontend/src/components/ui/EmptyState.tsx`
 
 For a screen with nothing to show yet — no recipes saved, no shopping list generated. Announced to assistive technology (`role="status"`) since it typically replaces a loading state once a request resolves. Props: standard `<div>` attributes, plus:
+
 - `title` (required)
 - `description?`: string
 - `action?`: `ReactNode` — pass a `<Button>` (or any element); `EmptyState` doesn't prescribe what the action looks like
@@ -147,6 +155,7 @@ For a screen with nothing to show yet — no recipes saved, no shopping list gen
 `frontend/src/components/ui/LoadingState.tsx`
 
 Skeleton placeholder reserving the space real content will occupy, so the layout doesn't shift when it swaps in. Announced via `role="status"` + `aria-busy="true"`; the visible bars are `aria-hidden` since the screen-reader text (`label`) already says what's loading. Props: standard `<div>` attributes, plus:
+
 - `label?`: string — screen-reader-only text, default `"Loading…"`
 - `rows?`: number — how many skeleton bars to render, default `3`. Pick a count that roughly matches what's loading (e.g. 3 for a short list, more for a longer one).
 
@@ -159,6 +168,7 @@ Skeleton placeholder reserving the space real content will occupy, so the layout
 `frontend/src/components/ui/ErrorState.tsx`
 
 Built on `Alert` (so it inherits `role="alert"` for AT announcement). Always shows a plain-language `message`; never shows a raw exception, stack trace, or `code` on its own. Props: standard `<div>` attributes, plus:
+
 - `message` (required) — the API's error message, in plain language
 - `title?`: string, default `"Something went wrong"`
 - `code?`: string — shown alongside `message`, never in place of it
@@ -166,11 +176,7 @@ Built on `Alert` (so it inherits `role="alert"` for AT announcement). Always sho
 - `retryLabel?`: string, default `"Try again"`
 
 ```tsx
-<ErrorState
-  message={error.message}
-  code={error.code}
-  onRetry={() => refetch()}
-/>
+<ErrorState message={error.message} code={error.code} onRetry={() => refetch()} />
 ```
 
 ## Modal
@@ -178,6 +184,7 @@ Built on `Alert` (so it inherits `role="alert"` for AT announcement). Always sho
 `frontend/src/components/ui/Modal.tsx`
 
 Simple controlled dialog. Props:
+
 - `open`: boolean (required)
 - `title`: string (required)
 - `onClose`: () => void (required)
