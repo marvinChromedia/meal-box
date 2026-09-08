@@ -76,7 +76,7 @@ Beacon's `TEST` project uses three statuses for this flow: **Todo → In Progres
 **Done** — set it yourself when all of these are true:
 
 - Implementation complete.
-- Required tests added or updated, and passing (§9).
+- Required tests added or updated, and passing (§9) — or a required layer formally deferred, which §9 defines narrowly.
 - `npm run build` passes.
 - Final diff reviewed; no unrelated changes; no secrets.
 - Ticket summary posted (§13).
@@ -135,6 +135,27 @@ Mandatory. Commands, layers and the current gaps are in [`docs/testing.md`](./do
 Before finishing: run the relevant tests, read the failures, fix what your change caused, re-run, and confirm the behaviour.
 
 Never remove a test because it fails, disable validation to make one pass, weaken an assertion without reason, skip a required test without saying so in the summary, or claim tests passed without running them. Code compiling is not a task being complete.
+
+### A required layer you cannot write yet
+
+There are three cases, not two, and they are not interchangeable:
+
+1. **The layer applies and you wrote it.** Normal.
+2. **The layer does not apply** — a data layer with no screen, a frontend change touching no backend. Say so in the summary and say why. An unexplained absence is indistinguishable from a skip.
+3. **The layer applies but is blocked by something outside your ticket** — most obviously that no end-to-end runner is installed. This is a real exception, and it is the only one.
+
+A deferral in case 3 is allowed only when **all** of these hold:
+
+- The blocker is genuinely outside your ticket's scope, and fixing it inside your branch would be worse — several sessions each installing their own runner, for instance.
+- **A ticket exists that carries the missing test**, with an owner, and it lists your ticket in its debt.
+- Your summary names that ticket and says the test is deferred to it.
+- The coordinating session agreed to the deferral.
+
+Then the ticket may go to Done, and the code may merge.
+
+**Do not describe a deferred layer as "not applicable".** It applies; it cannot be written yet. Those are different claims, and blurring them is exactly how a missing test becomes invisible. Name the ticket number instead.
+
+If you find yourself wanting a fourth category, you are about to skip a test. Ask the coordinating session instead.
 
 ## 10. Security
 
