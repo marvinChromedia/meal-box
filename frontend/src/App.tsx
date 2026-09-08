@@ -2,6 +2,7 @@ import { Link, Route, Routes } from 'react-router-dom';
 
 import { RecipeBox } from './features/recipes/RecipeBox.tsx';
 import { RecipeDetail } from './features/recipes/RecipeDetail.tsx';
+import { RecipeForm } from './features/recipes/RecipeForm.tsx';
 import { DesignSystemPage } from './pages/DesignSystemPage.tsx';
 
 function HomePage() {
@@ -24,7 +25,9 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/recipes" element={<RecipeBox />} />
+      <Route path="/recipes/new" element={<RecipeForm />} />
       <Route path="/recipes/:id" element={<RecipeDetail />} />
+      <Route path="/recipes/:id/edit" element={<RecipeForm />} />
       <Route path="/design" element={<DesignSystemPage />} />
     </Routes>
   );

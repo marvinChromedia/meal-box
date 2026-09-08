@@ -10,6 +10,7 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
 export function Textarea({ label, error, id, className, ...props }: TextareaProps) {
   const generatedId = useId();
   const textareaId = id ?? generatedId;
+  const errorId = `${textareaId}-error`;
 
   return (
     <div className="flex flex-col gap-1">
@@ -18,6 +19,8 @@ export function Textarea({ label, error, id, className, ...props }: TextareaProp
       </label>
       <textarea
         id={textareaId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         className={clsx(
           'min-h-24 rounded-md border px-3 py-2 text-sm text-gray-900 shadow-sm',
           'focus:outline-none focus:ring-2 focus:ring-blue-500',
@@ -26,7 +29,11 @@ export function Textarea({ label, error, id, className, ...props }: TextareaProp
         )}
         {...props}
       />
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? (
+        <p id={errorId} className="text-sm text-red-600">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
