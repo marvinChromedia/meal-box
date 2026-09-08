@@ -53,11 +53,21 @@ npm run migrate:down -w backend
 
 Every worktree on a machine shares one local PostgreSQL. Running `npm run migrate:up -w backend` from a feature branch writes that branch's unmerged schema change into `recipe_box_dev`, where it is invisible to every other session — and `node-pg-migrate` then fails its order check for anyone else, because the database holds a migration that does not exist in `main`'s migrations directory. That has already happened once and cost another session time.
 
-For manual checks, point at the test database instead — `globalSetup` rebuilds it from scratch on every run — or create a separate database for your branch:
+### The test database is not a safe substitute either
+
+This has now caught two sessions, so it is worth being explicit. `recipe_box_test` is shared by every worktree, and `globalSetup` **truncates and reseeds it at the start of every integration run**. Point a running backend at it and click through a screen by hand, and another session's test run will wipe the data underneath you mid-check.
+
+It does not look like contention. It looks like a real bug: rows vanish, an id changes, an edit you just made reverts itself. One session lost time chasing exactly that.
+
+So pick the database by what you are doing, not by which one is handy:
+
+- **Running the integration suite** → `recipe_box_test`. That is what it is for, and the reseed is the feature.
 
 ```bash
 TEST_DATABASE_URL="postgres://localhost:5432/recipe_box_test" npm run test:integration -w backend
 ```
+
+- **Anything you interact with by hand** — a running server, checking a screen against the real API rather than against mocks → **a scratch database you create for that check and discard afterwards.** Not `recipe_box_dev`, not `recipe_box_test`.
 
 Do not fix someone else's contamination with `migrate:down` on shared state while they are still working. Tell the coordinating session.
 

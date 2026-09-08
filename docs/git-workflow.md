@@ -41,7 +41,9 @@ Call git by absolute path to skip the rewrite:
 /usr/local/bin/git status
 ```
 
-It is a tooling interaction, not a repository problem, and it does not change any of the rules below. Related: the same proxy filters command output — see the exit-code warning in [`testing.md`](./testing.md).
+It is a tooling interaction, not a repository problem, and it does not change any of the rules below.
+
+The same proxy wraps other commands too, and it has been observed **misreporting the results of `find`** during a verification — call `/usr/bin/find` directly when the answer matters. Related, and the reason §5 of `CLAUDE.md` exists: the proxy also filters command output, and has printed a success line over a run that exited non-zero. See the exit-code warning in [`testing.md`](./testing.md).
 
 ## Before committing
 
@@ -86,6 +88,14 @@ If the push is refused, `main` moved. Fetch, rebase, re-test, retry. **Never for
 Re-running the suite _after_ the rebase is the point: a green run before it proves nothing about the merged result. A rebase onto someone else's merged work may also bring new dependencies — run `npm install` before the tests, or an unresolvable import will look like a broken test.
 
 Afterwards: add the merge commit SHA to the ticket summary, and tell the PM session it landed. The primary checkout's local `main` is stale until someone runs `git pull --ff-only` there.
+
+## Correcting a commit that is already pushed
+
+**Once a commit is on `main`, `git commit --amend` is the wrong tool — even when the commit is yours.** Another session may already have rebased onto it. Amending replaces it with a different commit of the same content, which puts your branch's history at odds with what everyone else has, and the next rebase produces conflicts that make no sense — an add/add conflict on a file only you have ever touched is the usual tell.
+
+Fix it with a **new corrective commit** instead. The history shows a mistake and its correction, which is honest and costs nothing; the alternative risks stranding another session's work.
+
+This is the one place where "one commit per ticket" gives way. A ticket that needed a correction after its first commit was already shared arrives as two commits, and that is correct — say so in the ticket rather than letting a reader conclude two commits per ticket is normal. Squash freely before the branch is shared; never after.
 
 ## Order
 
