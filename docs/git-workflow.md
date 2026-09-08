@@ -36,7 +36,9 @@ It is a tooling interaction, not a repository problem, and it does not change an
 
 ## The commit
 
-**One commit per branch.** However many steps the work took, squash before the branch is shared — a branch arrives as a single commit.
+**One commit per ticket, documentation included.** However many steps the work took, squash before the branch is shared — a branch arrives as a single commit containing the code, its tests, the feature doc, and any reference-page updates the change triggered.
+
+Never leave a `docs:` commit trailing behind an implementation. The change and its explanation are one unit: split them and a `git revert` removes the code while leaving documentation that still describes it.
 
 - Subject: Conventional Commits with the ticket key, under ~72 characters — `feat(recipes): add recipe CRUD API (TEST-72)`.
 - Body: a short bullet list **a non-engineer can read**. Say what the change does for the user; leave out file paths, function names and library choices. The same audience as the plain-language half of a ticket summary.

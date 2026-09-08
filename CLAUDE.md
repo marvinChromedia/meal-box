@@ -186,7 +186,13 @@ Full detail, including the merge route that actually works here, is in [`docs/gi
 
 Before committing: `git status`, read the whole diff, confirm only intended files changed, run the tests and the build, check for secrets, confirm everything belongs to your ticket.
 
-**One commit per branch.** Squash before the branch is shared. The commit must have **no `Co-Authored-By` trailer**, no tool attribution and no "generated with" footer. Subject follows Conventional Commits with the ticket key — `feat(recipes): add recipe CRUD API (TEST-72)`. The body is a short bullet list a non-engineer can read: what the change does for the user, not which files moved.
+**One commit per ticket, and it includes the documentation.** However many steps the work took, the branch arrives as a single commit containing everything the ticket produced: the code, its tests, the feature doc, and any reference-page updates it triggered. Squash before the branch is shared.
+
+There is no separate `docs:` commit trailing an implementation. A change and the explanation of that change are one unit of work — split them and the history stops telling you why anything happened, and a `git revert` takes back the code while leaving the documentation describing it.
+
+The commit must have **no `Co-Authored-By` trailer**, no tool attribution and no "generated with" footer. Subject follows Conventional Commits with the ticket key — `feat(recipes): add recipe CRUD API (TEST-72)`. The body is a short bullet list a non-engineer can read: what the change does for the user, not which files moved.
+
+This applies to the coordinating session too. Rule and documentation changes that are not tied to a ticket get **batched into one commit per change of intent**, not dribbled out one per edit — a stream of small `docs:` commits is the same failure in a different costume.
 
 Do not rewrite or squash another session's commits. Do not force-push.
 
@@ -229,7 +235,7 @@ Two tests before you post: could a non-engineer read this and know what changed?
 - [ ] `docs/api.md` and `docs/architecture.md` updated if the change altered the API surface, a layer, or a test command
 - [ ] Feature doc written at `docs/features/<TICKET-KEY>-<slug>.md`, carrying the technical detail
 - [ ] Ticket summary posted — short, non-technical (§13)
-- [ ] Single commit, no co-author
+- [ ] Single commit, no co-author — code, tests, feature doc and any reference-page updates all in it
 - [ ] Dependencies already merged to `main`
 - [ ] Ticket moved to Done
 - [ ] Merged to `main`, merge SHA added to the summary
