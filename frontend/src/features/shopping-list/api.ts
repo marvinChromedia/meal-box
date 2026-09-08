@@ -27,15 +27,24 @@ const httpShoppingListApi: ShoppingListApi = {
   removeItem: (itemId) => apiRequest<ShoppingList>(`/shopping-list/items/${itemId}`, { method: 'DELETE' }),
 };
 
-let mockList: ShoppingList = {
-  id: 'shopping-list-1',
-  items: [
-    { id: 'item-1', name: 'Spaghetti', quantity: 200, unit: 'g', checked: false, sourceRecipeIds: ['recipe-1'] },
-    { id: 'item-2', name: 'Garlic', quantity: 3, unit: 'clove', checked: false, sourceRecipeIds: ['recipe-1'] },
-  ],
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-};
+function createSeedShoppingList(): ShoppingList {
+  return {
+    id: 'shopping-list-1',
+    items: [
+      { id: 'item-1', name: 'Spaghetti', quantity: 200, unit: 'g', checked: false, sourceRecipeIds: ['recipe-1'] },
+      { id: 'item-2', name: 'Garlic', quantity: 3, unit: 'clove', checked: false, sourceRecipeIds: ['recipe-1'] },
+    ],
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+}
+
+let mockList: ShoppingList = createSeedShoppingList();
+
+/** Test-only: restores the mock list to its seed state, so tests in the same file don't leak mutations into each other. */
+export function __resetMockShoppingListForTests(): void {
+  mockList = createSeedShoppingList();
+}
 
 function touch(list: ShoppingList): ShoppingList {
   return { ...list, updatedAt: new Date().toISOString() };

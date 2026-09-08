@@ -62,10 +62,13 @@ Labeled dropdown. Props: standard `<select>` attributes, plus:
 
 `frontend/src/components/ui/Checkbox.tsx`
 
-Props: standard `<input type="checkbox">` attributes, plus `label` (required).
+Props: standard `<input type="checkbox">` attributes, plus:
+- `label` (required)
+- `size`: `sm` (default) | `lg` — `lg` for a bigger tap target, e.g. a checklist used one-handed (TEST-77)
 
 ```tsx
 <Checkbox label="Mark as favorite" defaultChecked />
+<Checkbox label="Milk — 1 gallon" size="lg" />
 ```
 
 ## Radio

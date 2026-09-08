@@ -105,6 +105,7 @@ export function DesignSystemPage() {
           <div className="flex flex-col gap-2">
             <Checkbox label="Mark as favorite" defaultChecked />
             <Checkbox label="Vegetarian" />
+            <Checkbox label="Milk — 1 gallon (size=lg, for a bigger tap target)" size="lg" defaultChecked />
           </div>
           <div className="flex flex-col gap-2">
             <Radio label="Metric" name="unit-system" defaultChecked />

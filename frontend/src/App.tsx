@@ -3,6 +3,7 @@ import { Link, Route, Routes } from 'react-router-dom';
 import { RecipeBox } from './features/recipes/RecipeBox.tsx';
 import { RecipeDetail } from './features/recipes/RecipeDetail.tsx';
 import { RecipeForm } from './features/recipes/RecipeForm.tsx';
+import { ShoppingList } from './features/shopping-list/ShoppingList.tsx';
 import { DesignSystemPage } from './pages/DesignSystemPage.tsx';
 
 function HomePage() {
@@ -12,6 +13,9 @@ function HomePage() {
       <p className="text-gray-600">Save recipes, generate a shopping list from them.</p>
       <Link to="/recipes" className="text-sm font-medium text-blue-600 hover:underline">
         Go to your recipe box &rarr;
+      </Link>
+      <Link to="/shopping-list" className="text-sm font-medium text-blue-600 hover:underline">
+        Go to your shopping list &rarr;
       </Link>
       <Link to="/design" className="text-sm font-medium text-blue-600 hover:underline">
         View design system &rarr;
@@ -28,6 +32,7 @@ export default function App() {
       <Route path="/recipes/new" element={<RecipeForm />} />
       <Route path="/recipes/:id" element={<RecipeDetail />} />
       <Route path="/recipes/:id/edit" element={<RecipeForm />} />
+      <Route path="/shopping-list" element={<ShoppingList />} />
       <Route path="/design" element={<DesignSystemPage />} />
     </Routes>
   );
