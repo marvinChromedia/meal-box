@@ -89,6 +89,17 @@ Several sessions may work this repo at once. Any session can be handed any ticke
 - Branch names are `feat/<TICKET-KEY>-<slug>` (`feat/TEST-78-data-persistence`), one branch per ticket, created off `main` in the session's own worktree.
 - A finished branch goes back to the coordinating session, which sequences the merges. Don't merge into `main` yourself — five branches landing in an arbitrary order is how the router and shared folders break.
 
+## Implementation order
+
+Tickets land in dependency order, not in whatever order sessions are free. Each sub-ticket's Identity table names what it depends on and what it blocks — that table is the schedule.
+
+- **Don't start a ticket whose dependencies haven't merged.** The coordinating session hands out tickets one at a time and says what gates each one; a session that runs ahead builds against a contract that hasn't settled.
+- **Storage before API before screens.** The schema is the first implementable ticket on a story, the endpoints come next, the screens last. The frontend data layer is the exception — it depends on the shape of the contract, not on a running endpoint, so it can be built in parallel with the schema.
+- **Blocked on an upstream endpoint? Stub at the `shared/` boundary and keep moving.** A typed mock against the frozen contract is fine and the swap costs nothing later. Redefining the types locally is not fine — that's the one thing that makes the parallel model fail.
+- **One feature folder has one owner at a time.** Two sessions in `src/features/recipes/` will conflict no matter how careful they are, so consecutive tickets over the same folder go to the same session in sequence rather than to two sessions at once.
+- **Merge order follows dependency order.** A branch built on a stubbed contract merges after the branch that made it real, so the stub is gone before the code lands.
+- **One ticket at a time per session.** Finish it — tests, feature doc, ticket comment — and hand the branch back before picking up the next.
+
 ## Ticket comments
 
 - One `add_comment` per completed ticket, not two: a short **plain-language summary** first (what changed, written for a non-engineer reader — a PM or stakeholder, not another developer), then the technical what-changed/how-verified details below it.
