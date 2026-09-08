@@ -20,7 +20,7 @@ export function LoginForm() {
       { email, password },
       {
         onSuccess: () => {
-          navigate('/account');
+          navigate('/');
         },
       },
     );

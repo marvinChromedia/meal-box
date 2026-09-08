@@ -40,7 +40,7 @@ describe('LoginForm', () => {
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
   });
 
-  it('signs in with the entered credentials and navigates to /account (AC3)', async () => {
+  it('signs in with the entered credentials and navigates to the home page (AC3)', async () => {
     vi.mocked(authApi.login).mockResolvedValue({
       id: 'u1',
       email: 'person@example.com',
@@ -59,7 +59,7 @@ describe('LoginForm', () => {
       });
     });
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/account');
+      expect(mockNavigate).toHaveBeenCalledWith('/');
     });
   });
 
