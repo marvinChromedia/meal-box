@@ -61,6 +61,7 @@ Each of `frontend/` and `backend/` has its own `package.json`, `tsconfig.json`, 
 - Unit/component: Vitest + React Testing Library, one test file per component/hook, colocated.
 - End-to-end: Playwright is mandatory for every user-facing flow, not just a final QA pass — run against the real frontend + backend + Postgres stack, covering the full recipe → shopping-list journey.
 - The Playwright harness (dependency, config, npm script) is landed **once** by the coordinating session, not scaffolded per branch — five sessions each standing up a runner produces five conflicting configs. Write specs against the existing harness; if it isn't there yet, ask for it.
+- Because a Playwright E2E is part of the merge bar for anything user-facing, that harness is a prerequisite for those tickets, not a nicety. A screen ticket cannot merge without its E2E.
 
 **Backend** — three required layers, kept distinct rather than blended into one suite:
 
@@ -122,23 +123,27 @@ Applies to every ticket worked on — Stories and sub-tasks alike. Don't post pr
 
 ## Merging a finished branch
 
+**No approval step.** A session merges its own branch once the bar below is met — it does not wait on the coordinating session. "Has its tests" is something you can check yourself; queueing five sessions behind one reviewer is not.
+
 A branch is finished when **all** of these are true, not when the code works:
 
-- Tests pass at every layer that applies to it (frontend unit/component and Playwright; backend unit, integration and API/contract).
+- **Tests at every layer that applies to the ticket's surface**, present and passing. If a layer applies, it is not optional:
+  - Touches backend code → _unit_ (services in isolation, DB mocked), _integration_ (Supertest against a real test Postgres) and _API/contract_ (shapes against the Zod boundary schemas).
+  - Touches a user-facing screen or flow → Vitest + React Testing Library component tests **and** a Playwright E2E.
+  - Touches neither — a pure data, client or config layer with no screen — → the layers that do apply. The ticket's own definition of done names which those are; don't invent test layers for a surface the code doesn't have, and don't skip ones it does.
 - The feature doc exists at `docs/features/<TICKET-KEY>-<slug>.md`.
 - The completion comment is on the Beacon ticket.
-- Every ticket it depends on is already merged into `main`.
+- **Every ticket it depends on is already merged into `main`.** This is correctness, not permission: it's what stops a branch built against a stub landing before the thing it stubbed.
 
-Then the session that wrote it merges it, in this order:
+Then merge it, in this order:
 
 1. `git fetch origin && git rebase origin/main` — rebase, don't merge `main` into the branch.
 2. Re-run the full test suite after the rebase. A green run before the rebase proves nothing about the merged result.
 3. Squash to a single commit (see Git / commits).
-4. Tell the coordinating session the branch is ready and hand it the ticket key. Wait for the go-ahead — the coordinating session verifies against the acceptance criteria and knows what else is in flight.
-5. On the go-ahead: `git checkout main && git merge --ff-only <branch> && git push origin main`. If the fast-forward is refused, `main` moved — go back to step 1 rather than forcing anything.
-6. Add the merge commit SHA to the ticket's completion comment, remove your worktree, and report back. The coordinating session closes the ticket.
+4. `git checkout main && git merge --ff-only <branch> && git push origin main`. If the fast-forward is refused, `main` moved — go back to step 1 rather than forcing anything.
+5. Add the merge commit SHA to the ticket's completion comment, remove your worktree, and tell the coordinating session it landed.
 
-Never merge a branch whose dependency hasn't landed, and never force-push `main`.
+Merging is self-serve; the audit trail and closing the ticket are not. Only the coordinating session moves a ticket to `DONE`, after checking it against its own acceptance criteria. Never force-push `main`.
 
 ## Tooling
 
