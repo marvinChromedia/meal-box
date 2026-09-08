@@ -12,5 +12,9 @@ export default defineConfig({
     // asyncUtilTimeout in test/setup.ts — tolerance for a shared, contended
     // dev machine, not a fix for a race. See docs/testing.md.
     testTimeout: 15000,
+    // Explicit, not incidental: component/hook tests exercise the typed mock
+    // (AC5 of TEST-155) regardless of the app's own default, which is now
+    // "http" (TEST-154) now that the real endpoints exist.
+    env: { VITE_API_MODE: 'mock' },
   },
 });

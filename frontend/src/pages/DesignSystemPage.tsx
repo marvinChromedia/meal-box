@@ -93,6 +93,10 @@ export function DesignSystemPage() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Input label="Recipe title" placeholder="e.g. Tomato Pasta" />
           <Input label="With error" placeholder="e.g. 2 cups flour" error="This field is required" />
+          <div className="flex items-center gap-2">
+            <Input label="Quantity (hideLabel example)" hideLabel type="number" defaultValue={2} className="w-20" />
+            <span className="text-sm text-gray-600">gallon — label is present for screen readers, hidden visually</span>
+          </div>
           <Textarea label="Steps" placeholder="1. Boil water..." />
           <Select
             label="Unit"

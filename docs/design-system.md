@@ -27,10 +27,12 @@ Labeled text input. Props: standard `<input>` attributes, plus:
 
 - `label` (required)
 - `error?`: string — shows below the field, switches the border to red, and sets `aria-invalid="true"` plus `aria-describedby` pointing at the error message, so a screen reader announces it alongside the field
+- `hideLabel?`: boolean — keeps `label` associated with the field for assistive tech (still a real `<label for>`) but visually hides it (`sr-only`), for a compact field where surrounding text already makes its purpose clear (e.g. a quantity field inline in a list row)
 
 ```tsx
 <Input label="Recipe title" placeholder="e.g. Tomato Pasta" />
 <Input label="Quantity" error="Quantity must be a number." />
+<Input label="Quantity for Milk" hideLabel type="number" className="w-20" />
 ```
 
 ## Textarea

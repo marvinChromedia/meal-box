@@ -81,3 +81,27 @@ export function useRemoveShoppingListItem() {
     },
   });
 }
+
+/**
+ * Clears the list by removing every item — there's no bulk-clear endpoint,
+ * only the per-item one, so this calls it once per id, in sequence (a clear
+ * is a rare, deliberate action; there's no reason to prefer the added
+ * complexity of firing the requests concurrently). The list row itself is
+ * never deleted, only emptied — see the feature doc for why that's the
+ * right reading of what TEST-234's repository layer actually does.
+ */
+export function useClearShoppingList() {
+  const queryClient = useQueryClient();
+  return useMutation<ShoppingList | undefined, ApiClientError, string[]>({
+    mutationFn: async (itemIds) => {
+      let list: ShoppingList | undefined;
+      for (const itemId of itemIds) {
+        list = await shoppingListApi.removeItem(itemId);
+      }
+      return list;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.all });
+    },
+  });
+}
