@@ -156,7 +156,8 @@ Then merge it, in this order:
 1. `git fetch origin && git rebase origin/main` — rebase, don't merge `main` into the branch.
 2. Re-run the full test suite after the rebase. A green run before the rebase proves nothing about the merged result.
 3. Squash to a single commit (see Git / commits).
-4. `git checkout main && git merge --ff-only <branch> && git push origin main`. If the fast-forward is refused, `main` moved — go back to step 1 rather than forcing anything.
+4. `git push origin <branch>:main`. Do **not** use `git checkout main && git merge --ff-only` — `main` is permanently checked out in the primary repository directory, and git refuses to touch a branch checked out in another worktree, so that route cannot work from a session's own worktree. The refspec push carries the same guarantee: git rejects it unless it is a fast-forward. If it is refused, `main` moved — go back to step 1 rather than forcing anything.
+   After it lands, the primary checkout's local `main` ref is stale until someone runs `git pull --ff-only` there. The coordinating session does that; mention it when you report the merge.
 5. Add the merge commit SHA to the ticket's completion comment and tell the coordinating session it landed.
 6. **Do not remove the worktree you are running in.** A session whose working directory disappears can no longer be reached — it drops out of the project mid-flight, taking whatever it knew with it. Leave cleanup to the coordinating session, or move out of the directory first and only then remove it.
 
