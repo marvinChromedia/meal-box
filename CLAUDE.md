@@ -1,187 +1,220 @@
-# Recipe Box + Shopping List — Project Constitution
+# CLAUDE.md — AI Development Workflow
 
-Personal project for Beacon ticket [`TEST-71`](https://beacon.chro.media/browse/TEST-71) "Marvin Punongbayan - MealBox". Save recipes, generate a de-duplicated shopping list from selected recipes, manage that list. Feature breakdown lives in `TEST-71`'s own Notes & Assumptions section (sub-task list keeps growing — that's the source of truth, not a hardcoded range here).
+Instructions every Claude Code session working in this repository must follow.
 
-This file is the standing set of conventions for anyone (or any agent) writing code in this repo. Follow it unless a specific instruction says otherwise.
+This file is the rules. Reference detail lives in [`docs/`](./docs) and is linked from each section — read the linked file before working in that area.
 
-## Tech stack
+MealBox is a personal recipe box with shopping-list generation, tracked as Beacon story [`TEST-71`](https://beacon.chro.media/browse/TEST-71). Sub-tasks under that story are the unit of work.
 
-- **Frontend**: React 18 + Vite + TypeScript (`strict: true`), Tailwind CSS. Mobile-responsive by default.
-- **Backend**: Node.js + Express + TypeScript.
-- **Database**: PostgreSQL, accessed through a typed query layer — `pg` with Zod-validated rows, migrations via `node-pg-migrate`. Decided, not optional: hand-written SQL keeps the repository layer explicit and the parameterized-SQL rule meaningful. Don't introduce an ORM.
-- **Fallback for zero-backend / offline-only builds**: swap Postgres+Express for `IndexedDB`/`localStorage` directly from the frontend. Not in play for this project — it drops cross-device sync (`TEST-78`). Don't reach for it to work around a database setup problem; fix the setup.
+## 1. The workflow
 
-## Repo structure
-
-Monorepo, two independently-runnable packages:
-
+```text
+User
+  ↓
+PM session          receives the request, finds the ticket, delegates
+  ↓
+Dev session
+  ↓
+Understand          read the ticket, inspect the code, find what to reuse
+  ↓
+Plan               a concise plan before any edit
+  ↓
+Implement          smallest change that fully solves the ticket
+  ↓
+Test               real tests, actually run
+  ↓
+Document           ticket summary + feature doc
+  ↓
+Commit             one commit, no co-author
+  ↓
+Done               ticket → Done
+  ↓
+Merge to main
 ```
-frontend/   Vite + React app
-backend/    Express API
-shared/     Types shared between frontend and backend (recipe, ingredient, shopping-list-item shapes)
-docs/       Written reference docs (e.g. the design system)
-```
 
-Each of `frontend/` and `backend/` has its own `package.json`, `tsconfig.json`, lint config extending a shared root config.
+Several dev sessions run in parallel, each in its own git worktree. One session coordinates and is titled "Project Manager".
 
-## Frontend conventions
+## 2. PM session
 
-- Function components + hooks only. No class components.
-- Feature-folder layout: colocate a component, its styles (Tailwind, so usually no separate CSS file), and its test in the same folder (`src/features/recipes/RecipeCard.tsx`, `RecipeCard.test.tsx`).
-- Naming: `PascalCase` for components, `camelCase` for functions/variables/hooks (`useShoppingList`), `SCREAMING_SNAKE_CASE` only for true constants.
-- No `any`. Prefer the shared types from `shared/` over redefining shapes locally.
-- State: local component state (`useState`/`useReducer`) by default. Server state (recipes, shopping list) through React Query — don't reach for Redux/Zustand unless cross-cutting client state actually shows up.
-- Styling is mobile-first: write the unprefixed Tailwind classes for the smallest viewport, add `sm:`/`md:`/`lg:` for larger. Check every screen at a 375px-wide viewport before calling it done.
-- Accessibility: semantic HTML elements over generic `div`s, every form input has a `<label>`, interactive elements are keyboard-reachable with visible focus states.
+The PM session is the coordinator between the user and the dev sessions. It:
 
-## Design System
+1. Receives the user's request and understands the requirement.
+2. Identifies the ticket, or has one written before work starts — **a ticket with no acceptance criteria is not startable.**
+3. Determines scope and what the work depends on.
+4. Delegates implementation to a dev session, one ticket at a time per session.
+5. Monitors progress and coordinates when two sessions' work overlaps.
+6. Answers dev sessions' questions, and **puts decisions to the user** when the answer is not in the repository or the ticket.
+7. Owns `shared/src/types.ts` — the frontend/backend contract seam. Contract changes go through the PM session so two branches cannot diverge.
+8. Reviews completed work against the ticket's acceptance criteria and reopens anything short of the bar.
 
-- Reusable UI components live in `frontend/src/components/ui/` (`Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Badge`, `Card`, `Alert`, `Modal`).
-- Live, visual gallery of every component and variant: run the app and visit `/design`. Written reference with props and usage snippets: [`docs/design-system.md`](./docs/design-system.md).
-- New UI work reuses these components instead of duplicating Tailwind classes ad hoc. If a screen genuinely needs a new component or variant, add it in all three places together: `components/ui/`, the `/design` page, and `docs/design-system.md`.
+The PM session does not implement work a dev session should do.
 
-## Backend conventions
+## 3. Dev session — before coding
 
-- REST resources: `/api/recipes`, `/api/recipes/:id`, `/api/shopping-list`.
-- Layering: route → controller → service → repository. Controllers stay thin (parse/validate request, call service, shape response) — no business logic or SQL in a controller.
-- Validate every request body/params at the boundary with Zod; reject invalid input with a `400` before it reaches a service.
-- Consistent error shape across all endpoints: `{ error: { message: string, code: string } }`.
-- Config via `.env`, with a checked-in `.env.example` listing every required variable and no real values. Never commit a populated `.env`.
+> **Inspect first. Plan second. Implement third.**
 
-## Database conventions
+Before editing anything:
 
-- Schema changes go through `node-pg-migrate` migrations only — never hand-edit the schema in a running database.
-- One migration per logical change; migrations are forward-only and named with a full timestamp plus a description (`20260908143000_create_recipes_table`). A date alone (`20260908_…`) is not parseable as a timestamp — `node-pg-migrate` warns and falls back to sorting by filename, which silently breaks ordering as soon as two migrations share a date. Never rename a migration that has already been applied.
-- `snake_case` table and column names. Foreign keys for `recipe_ingredients.recipe_id → recipes.id` and `shopping_list_items` referencing the recipe(s) it was generated from.
+1. Read the whole ticket, not just its title.
+2. Inspect the existing implementation of what you are about to change.
+3. Search for functionality you can reuse — see §7.
+4. Identify affected components, services, endpoints, migrations and tests.
+5. Identify what could regress.
+6. Run `git status` and check which branch you are on.
+7. Write a concise plan.
 
-## Testing
+Do not start coding from the ticket description alone.
 
-**Frontend**
+## 4. Ticket lifecycle
 
-- Unit/component: Vitest + React Testing Library, one test file per component/hook, colocated.
-- End-to-end: Playwright is mandatory for every user-facing flow, not just a final QA pass — run against the real frontend + backend + Postgres stack, covering the full recipe → shopping-list journey.
-- The Playwright harness (dependency, config, npm script) is landed **once** by the coordinating session, not scaffolded per branch — five sessions each standing up a runner produces five conflicting configs. Write specs against the existing harness; if it isn't there yet, ask for it.
-- Because a Playwright E2E is part of the merge bar for anything user-facing, that harness is a prerequisite for those tickets, not a nicety. A screen ticket cannot merge without its E2E.
+Beacon's `TEST` project uses three statuses for this flow: **Todo → In Progress → Done**. Do not invent others.
 
-**Backend** — three required layers, kept distinct rather than blended into one suite:
+**Todo** — not started. Read the ticket and plan before touching code.
 
-- _Unit_: pure functions/services (e.g. ingredient aggregation/de-dup logic) tested in isolation with the DB mocked.
-- _Integration_: Supertest hitting real Express routes against a real test Postgres database — proves route → service → repository → DB wiring actually works.
-- _API/contract_: validates request/response shapes against the Zod boundary schemas, independent of business logic — catches breaking changes to the API surface.
+**In Progress** — set this **as soon as you begin**, not when you are nearly finished. Post a start comment at the same time: which session, the branch name, and what the ticket was waiting on.
 
-Integration tests run against a **separate test database**, never the development one — they truncate and reseed, so pointing them at `DATABASE_URL` destroys local data. The variable belongs in `.env.example` alongside the others.
+**Done** — set it yourself when all of these are true:
 
-A feature isn't done until it has tests at every applicable layer above, not just a manual check.
+- Implementation complete.
+- Required tests added or updated, and passing (§9).
+- `npm run build` passes.
+- Final diff reviewed; no unrelated changes; no secrets.
+- Ticket summary posted (§13).
+- Single commit created, no co-author (§12).
+- Every ticket this one depends on is already merged.
 
-## Per-ticket documentation
+Then merge to `main` (§12). Add the merge commit SHA to the summary comment afterwards.
 
-- Every ticket that changes behavior gets a short feature doc at `docs/features/<TICKET-KEY>-<slug>.md`: what was built, why, and how it works — same pattern as `docs/design-system.md`.
-- Written when the ticket's work is verified, at the same time as the ticket comment below — not deferred.
+The PM session audits closed tickets and reopens any that fall short. Closing your own ticket is trusted, not unchecked.
 
-## Development flow
+## 5. Questions
 
-The agreed loop for every piece of work. Steps 3–9 are the dev session's own responsibility.
+If a requirement is ambiguous and the choice would change behaviour or what a user sees, **do not guess**.
 
-1. **The coordinating session ("Project Manager") takes the request** from the user — what should be built, changed or fixed.
-2. **It hands the work to a dev session** as a specific ticket key, saying what gates it. One ticket at a time per session.
-3. **Every dev session is connected to Beacon** (`beacon-production`). A session that cannot read and write its own tickets cannot follow this flow — say so immediately rather than working blind or asking someone to relay.
-4. **On starting: move the ticket to `IN_PROGRESS`** and post the start comment (session, branch, gate).
-5. **Tests are not optional.** Frontend work has a Playwright end-to-end test. Backend work has unit _and_ integration tests, plus API/contract tests wherever there is a Zod boundary. If a layer genuinely does not apply — a data layer with no screen, a frontend ticket touching no backend — say so explicitly in the completion comment and explain why. A layer that applies and is missing is not done; a layer that does not apply and is unexplained looks the same as one that was skipped.
-6. **Stuck or unsure? Ask the coordinating session.** Send it the question with enough context to answer, and it puts the decision to the user directly. Do not guess at a requirement you cannot read, and do not invent scope to fill a gap in a ticket — two sessions guessing produce work that has to be redone.
-7. **On finishing: post a detailed completion comment and move the ticket to `DONE`.** Plain-language summary first for a non-engineer, then the technical detail — what changed, which test layers ran, which acceptance criteria are covered, and any decision a later ticket needs. Before the merge, not after.
-8. **Commit** per Git / commits below: one commit for the branch, Conventional Commits subject with the ticket key, body a short bullet list a non-engineer can read, no `Co-Authored-By` and no tool attribution.
-9. **Merge to `main` yourself** per Merging a finished branch below — rebase, re-run the suite after the rebase, squash, `merge --ff-only`, push. Then add the merge SHA to the completion comment.
+1. Work out the specific question.
+2. Check whether the repository already answers it — existing code, existing patterns, the ticket, the tests, `docs/`.
+3. If it does not: send the question to the PM session with enough context to answer it.
+4. The PM session puts it to the user, using an interactive prompt where one is available.
+5. Continue with the confirmed decision, and record it in the ticket summary.
 
-The coordinating session still audits closed tickets against their acceptance criteria and reopens anything that did not meet the bar. Closing your own ticket is trusted, not unchecked — and an audit that finds nothing costs nobody anything.
+Do not ask what you could have found by looking. Do not invent scope to fill a gap in a ticket.
 
-## Working in parallel sessions
+## 6. Verify, don't assume
 
-Several sessions may work this repo at once. Any session can be handed any ticket — there are no fixed specialisms, and a session's scope is whatever ticket it was given.
+Mandatory. Never assume a file exists, an endpoint behaves a certain way, a component is unused, a column has a given type, a test covers a case, an environment variable is set, or that another session's changes are safe to modify. Check.
 
-- One session coordinates (titled "Project Manager"). It owns `shared/`, sequences merges, verifies tickets against the definition of done and closes them.
-- Each session works in its own git worktree on its own branch off `main`. Never two sessions in one checkout.
-- `shared/src/types.ts` is the contract seam between frontend and backend. Import from `@recipe-box/shared`; never redefine those shapes locally. Contract changes go through the coordinating session so two branches don't diverge.
-- Before starting work that overlaps another live branch — the same feature folder, the router, a migration — check with the coordinating session.
-- **A ticket is not startable until it has a description with acceptance criteria.** Handed a title-only ticket, ask the coordinating session to spec it rather than inventing the scope — two sessions guessing produce work that has to be redone.
-- Branch names are `feat/<TICKET-KEY>-<slug>` (`feat/TEST-78-data-persistence`), one branch per ticket, created off `main` in the session's own worktree.
-- A finished branch goes back to the coordinating session, which sequences the merges. Don't merge into `main` yourself — five branches landing in an arbitrary order is how the router and shared folders break.
+**Verify by exit code, not by printed output.** A command proxy configured outside this repository filters command output, and has been observed printing `TypeScript: No errors found` over a run that exited 1. Redirect to a file and grep it, or check `echo $?`. Never report a test or build result you did not see the exit status of.
 
-## Implementation order
+## 7. Reuse before creating
 
-Tickets land in dependency order, not in whatever order sessions are free. Each sub-ticket's Identity table names what it depends on and what it blocks — that table is the schedule.
+Before adding a component, hook, service, utility, endpoint, abstraction or dependency, search for one that already does the job. See [`docs/architecture.md`](./docs/architecture.md) for what exists and where.
 
-- **Don't start a ticket whose dependencies haven't merged.** The coordinating session hands out tickets one at a time and says what gates each one; a session that runs ahead builds against a contract that hasn't settled.
-- **Storage before API before screens.** The schema is the first implementable ticket on a story, the endpoints come next, the screens last. The frontend data layer is the exception — it depends on the shape of the contract, not on a running endpoint, so it can be built in parallel with the schema.
-- **Blocked on an upstream endpoint? Stub at the `shared/` boundary and keep moving.** A typed mock against the frozen contract is fine and the swap costs nothing later. Redefining the types locally is not fine — that's the one thing that makes the parallel model fail.
-- **One feature folder has one owner at a time.** Two sessions in `src/features/recipes/` will conflict no matter how careful they are, so consecutive tickets over the same folder go to the same session in sequence rather than to two sessions at once.
-- **Merge order follows dependency order.** A branch built on a stubbed contract merges after the branch that made it real, so the stub is gone before the code lands.
-- **One ticket at a time per session.** Finish it — tests, feature doc, ticket comment — and hand the branch back before picking up the next.
+- Types come from `@recipe-box/shared`. Never redefine those shapes locally.
+- UI comes from `frontend/src/components/ui/` — see [`docs/frontend.md`](./docs/frontend.md) and [`docs/design-system.md`](./docs/design-system.md).
+- SQL lives only in `backend/src/repositories/` — see [`docs/backend.md`](./docs/backend.md).
 
-## Ticket comments and status
+Make the smallest change that fully solves the ticket. Do not rewrite unrelated code, and do not add abstractions, patterns or dependencies the ticket does not need.
 
-Every ticket carries its own audit trail in Beacon, so anyone can reconstruct what happened without reading a chat log. Two comments per ticket, no more:
+When fixing a bug: understand it, find the root cause, fix that, add a regression test, verify. Do not patch the symptom.
 
-**1. A start comment**, posted at the same moment the ticket moves to `IN_PROGRESS`. Three lines is plenty — who is working it (which session), the branch name, and what it was gated on. This is what makes an abandoned or duplicated ticket obvious.
+Do not change existing behaviour unintentionally. If the ticket requires a behaviour change, make it deliberate and test it.
 
-**2. A completion comment**, posted when the work is verified, alongside the feature doc:
+## 8. Code quality
 
-- A short **plain-language summary first** — what changed, written for a non-engineer reader. A PM or stakeholder should understand it without asking a developer.
-- Then the technical detail below it: what changed, how it was verified (name the test layers that ran), which acceptance criteria are covered, and any decision or assumption a later ticket needs to know about.
-- Once the branch is merged, the merge commit SHA goes on that same comment rather than in a third one.
+Before finishing, review your own diff for leftover debugging statements, temporary code, duplicated logic, unused imports, weak naming, missing error handling, security problems and unintended side effects.
 
-Applies to every ticket worked on — Stories and sub-tasks alike. Don't post progress commentary between the two; the branch is the progress record.
+`npm run lint` and `npm run format` are the project's checks, and TypeScript runs `strict: true` in both workspaces. **Do not disable a check, loosen `strict`, or add `any` to make a task pass.**
 
-**Status discipline.** Beacon's `TEST` project has only TODO / IN_PROGRESS / DONE / CLOSED — no QA-handoff status, and don't invent one.
+## 9. Testing
 
-- `TODO` → `IN_PROGRESS` when work actually starts, with the start comment.
-- Stays `IN_PROGRESS` while the work is in flight.
-- `IN_PROGRESS` → `DONE` by the session that did the work, when the completion comment is posted and the bar in Merging a finished branch is met. The coordinating session audits closed tickets afterwards and reopens any that fall short.
+Mandatory. Commands, layers and the current gaps are in [`docs/testing.md`](./docs/testing.md) — read it before claiming anything about tests.
 
-## Merging a finished branch
+- **Frontend behaviour changed** → add or update an end-to-end test covering the user flow, its edge cases, and loading/error/empty states. **No E2E framework is installed in this repository yet**, so raise this with the PM session rather than skipping it silently or scaffolding your own runner.
+- **Backend behaviour changed** → add or update unit tests, and integration tests where the wiring matters. Add a regression test for a bug.
 
-**No approval step.** A session merges its own branch once the bar below is met — it does not wait on the coordinating session. "Has its tests" is something you can check yourself; queueing five sessions behind one reviewer is not.
+Before finishing: run the relevant tests, read the failures, fix what your change caused, re-run, and confirm the behaviour.
 
-A branch is finished when **all** of these are true, not when the code works:
+Never remove a test because it fails, disable validation to make one pass, weaken an assertion without reason, skip a required test without saying so in the summary, or claim tests passed without running them. Code compiling is not a task being complete.
 
-- **Tests at every layer that applies to the ticket's surface**, present and passing. If a layer applies, it is not optional:
-  - Touches backend code → _unit_ (services in isolation, DB mocked), _integration_ (Supertest against a real test Postgres) and _API/contract_ (shapes against the Zod boundary schemas).
-  - Touches a user-facing screen or flow → Vitest + React Testing Library component tests **and** a Playwright E2E.
-  - Touches neither — a pure data, client or config layer with no screen — → the layers that do apply. The ticket's own definition of done names which those are; don't invent test layers for a surface the code doesn't have, and don't skip ones it does.
-- **The build passes.** `npm run build` from the repository root, covering both workspaces. Tests and the dev server can be green while the production build is broken — that is exactly how a broken build sat in `main` from the scaffold until TEST-217. Check the **exit code**, not a printed summary line: the `rtk` command proxy filters output and has been observed printing "TypeScript: No errors found" over an exit-1 run. Redirect to a file and grep, or `echo $?`.
-- The feature doc exists at `docs/features/<TICKET-KEY>-<slug>.md`.
-- **The Beacon ticket is updated and the completion comment is posted — before the merge, not after.** The trail is written while the work is fresh and while it can still change the decision to merge; a comment written afterwards is a formality, and a comment never written means nobody outside the session knows what landed. No branch reaches `main` ahead of its ticket.
-- **Every ticket it depends on is already merged into `main`.** This is correctness, not permission: it's what stops a branch built against a stub landing before the thing it stubbed.
+## 10. Security
 
-Then merge it, in this order:
+Never commit secrets, passwords, API keys or tokens; never log credentials; never bypass authentication, authorization or validation; never trust client-side authorization alone; never hardcode environment-specific secrets. `.env` is gitignored — `.env.example` carries the variable names and no values.
 
-1. `git fetch origin && git rebase origin/main` — rebase, don't merge `main` into the branch.
-2. Re-run the full test suite after the rebase. A green run before the rebase proves nothing about the merged result.
-3. Squash to a single commit (see Git / commits).
-4. `git push origin <branch>:main`. Do **not** use `git checkout main && git merge --ff-only` — `main` is permanently checked out in the primary repository directory, and git refuses to touch a branch checked out in another worktree, so that route cannot work from a session's own worktree. The refspec push carries the same guarantee: git rejects it unless it is a fast-forward. If it is refused, `main` moved — go back to step 1 rather than forcing anything.
-   After it lands, the primary checkout's local `main` ref is stale until someone runs `git pull --ff-only` there. The coordinating session does that; mention it when you report the merge.
-5. Add the merge commit SHA to the ticket's completion comment and tell the coordinating session it landed.
-6. **Do not remove the worktree you are running in.** A session whose working directory disappears can no longer be reached — it drops out of the project mid-flight, taking whatever it knew with it. Leave cleanup to the coordinating session, or move out of the directory first and only then remove it.
+All SQL is parameterized. Every mutating endpoint validates its input before touching the database. CORS is locked to the known frontend origin.
 
-Merging and closing are both self-serve — the trail is what makes that safe, which is why the completion comment goes up before the merge rather than after. The coordinating session audits closed tickets and reopens anything short of the bar. Never force-push `main`.
+When your change touches authentication, authorization, permissions, user access or sensitive data, review the diff explicitly for security consequences and say what you checked in the ticket summary.
 
-## Tooling
+## 11. Parallel development
 
-- ESLint + Prettier, one shared config at the repo root, extended by both `frontend/` and `backend/`.
-- TypeScript `strict: true` in both packages — no loosening this to unblock a build.
-- Optional: `lint-staged` + a pre-commit hook to run lint/format on staged files only.
+Several sessions work this repository at once. These rules exist to stop one session destroying another's work.
 
-## Git / commits
+1. Work only within your assigned ticket's scope.
+2. `git status` and check your branch before starting.
+3. Work in your own worktree — never two sessions in one checkout. See [`docs/git-workflow.md`](./docs/git-workflow.md).
+4. Understand uncommitted changes before you touch the files they are in.
+5. Never discard, overwrite or clean up another session's uncommitted work.
+6. Never `git reset --hard`, never force-push, never rewrite another task's commits.
+7. Avoid touching files outside your ticket.
+8. Tell the PM session about conflicts instead of resolving them unilaterally.
 
-- Conventional Commits for the subject line (`feat:`, `fix:`, `chore:`, `test:`, ...), kept under ~72 characters.
-- Reference the Beacon ticket key in the subject when the change implements one, e.g. `feat(recipes): add recipe CRUD API (TEST-72)`.
-- **One commit per branch.** However many steps the work took, squash before the branch is handed off or merged — a branch arrives as a single commit.
-- **Write the body as a short bullet list a non-engineer can read.** Say what the change does for the user; leave out file paths, function names and library choices. Same audience as the plain-language half of a ticket comment — a PM should be able to follow the log without asking.
-- **No `Co-Authored-By` trailers**, no tool attribution, no "generated with" footers.
-- Squash before a branch is shared, never after — rewriting history another session or worktree has already branched from strands that work.
+If two sessions changed the same code, do not simply pick one. Read both, understand why each exists, and ask the PM session to coordinate.
 
-## Security basics
+## 12. Git
 
-- No secrets, API keys, or credentials committed to the repo — `.env` is gitignored.
-- All SQL is parameterized; never build a query with string interpolation of user input.
-- CORS on the Express app is locked to the known frontend origin(s), not `*`.
-- Every mutating endpoint (`POST`/`PUT`/`PATCH`/`DELETE`) validates its input before touching the database.
+Full detail, including the merge route that actually works here, is in [`docs/git-workflow.md`](./docs/git-workflow.md).
+
+Before committing: `git status`, read the whole diff, confirm only intended files changed, run the tests and the build, check for secrets, confirm everything belongs to your ticket.
+
+**One commit per branch.** Squash before the branch is shared. The commit must have **no `Co-Authored-By` trailer**, no tool attribution and no "generated with" footer. Subject follows Conventional Commits with the ticket key — `feat(recipes): add recipe CRUD API (TEST-72)`. The body is a short bullet list a non-engineer can read: what the change does for the user, not which files moved.
+
+Do not rewrite or squash another session's commits. Do not force-push.
+
+## 13. Ticket summary
+
+Post a summary comment when the work is done, **before** merging. Write it so both a developer and a non-engineer can follow it — plain-language summary first, detail below:
+
+- **Summary** — what was implemented.
+- **Changes** — the important changes.
+- **Testing** — tests added or updated, tests run, and their results. Name any layer that does not apply and why; an unexplained absence looks identical to a skipped test.
+- **Behavior** — user-facing changes.
+- **Configuration / Deployment** — new environment variables, migrations, or setup steps.
+- **Notes** — anything the PM should know, including decisions later tickets depend on.
+
+Per-ticket feature docs go in `docs/features/<TICKET-KEY>-<slug>.md` when the change is worth explaining beyond the summary.
+
+## 14. Definition of Done
+
+- [ ] Requirements understood; ticket read in full
+- [ ] Existing implementation inspected; reusable code searched for
+- [ ] Plan written before implementing
+- [ ] Ticket moved Todo → In Progress at the start, with a start comment
+- [ ] Implementation complete
+- [ ] Frontend E2E added/updated where frontend behaviour changed
+- [ ] Backend unit tests added/updated where backend logic changed
+- [ ] Backend integration tests added/updated where wiring changed
+- [ ] Relevant tests run and passing — exit code checked
+- [ ] `npm run build` passes
+- [ ] `npm run lint` passes
+- [ ] Final diff reviewed; no unrelated changes; no secrets
+- [ ] Ticket summary posted
+- [ ] Single commit, no co-author
+- [ ] Dependencies already merged to `main`
+- [ ] Ticket moved to Done
+- [ ] Merged to `main`, merge SHA added to the summary
+
+## 15. Do not
+
+Start coding without inspecting. Guess at an ambiguous requirement. Rewrite unrelated code. Add unnecessary abstractions or dependencies. Duplicate what exists. Remove tests to make them pass. Disable linting, type checking or security controls. Touch another ticket. Discard another session's changes. Use destructive git commands or force-push without explicit instruction. Commit secrets. Claim tests passed without running them. Claim a task is complete without verifying it. Mark a ticket Done with work outstanding. Invent a project convention.
+
+## 16. Reference
+
+| Document                                           | What it covers                                         |
+| -------------------------------------------------- | ------------------------------------------------------ |
+| [`docs/architecture.md`](./docs/architecture.md)   | Workspace layout, the shared contract, request path    |
+| [`docs/frontend.md`](./docs/frontend.md)           | React/Vite/Tailwind conventions, state, accessibility  |
+| [`docs/backend.md`](./docs/backend.md)             | Express layering, validation, repositories, migrations |
+| [`docs/api.md`](./docs/api.md)                     | Endpoints as they exist, conventions for new ones      |
+| [`docs/testing.md`](./docs/testing.md)             | Commands per layer, the test database, current gaps    |
+| [`docs/git-workflow.md`](./docs/git-workflow.md)   | Worktrees, branches, commits, the merge route          |
+| [`docs/deployment.md`](./docs/deployment.md)       | Running it locally; what does not exist yet            |
+| [`docs/design-system.md`](./docs/design-system.md) | UI component reference                                 |
