@@ -8,6 +8,8 @@ import {
   login,
   register,
 } from '../../src/services/authService.js';
+import { DEFAULT_RECIPES } from '../../src/services/defaultRecipes.js';
+import * as recipesRepository from '../../src/repositories/recipesRepository.js';
 import * as sessionsRepository from '../../src/repositories/sessionsRepository.js';
 import * as usersRepository from '../../src/repositories/usersRepository.js';
 
@@ -23,12 +25,29 @@ vi.mock('../../src/repositories/sessionsRepository.js', () => ({
   deleteSessionByTokenHash: vi.fn(),
 }));
 
+vi.mock('../../src/repositories/recipesRepository.js', () => ({
+  createRecipe: vi.fn(),
+}));
+
 const pool = {} as Pool;
 
 const user = { id: 'u1', email: 'person@example.com', createdAt: '2026-01-01T00:00:00.000Z' };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: seeding succeeds silently, matching most tests' concerns.
+  // Individual tests override this when the seeding behavior is what's
+  // under test, so a mockRejectedValue from one test can't leak into another.
+  vi.mocked(recipesRepository.createRecipe).mockResolvedValue({
+    id: 'r1',
+    title: 'placeholder',
+    ingredients: [],
+    steps: [],
+    tags: [],
+    isFavorite: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  });
 });
 
 describe('authService.register', () => {
@@ -62,6 +81,28 @@ describe('authService.register', () => {
       DuplicateEmailError,
     );
     expect(usersRepository.createUser).not.toHaveBeenCalled();
+  });
+
+  it('seeds every default recipe for the new account (TEST-254 AC1)', async () => {
+    vi.mocked(usersRepository.findUserByEmail).mockResolvedValue(null);
+    vi.mocked(usersRepository.createUser).mockResolvedValue(user);
+
+    await register(pool, { email: user.email, password: 'password123' });
+
+    expect(recipesRepository.createRecipe).toHaveBeenCalledTimes(DEFAULT_RECIPES.length);
+    for (const recipe of DEFAULT_RECIPES) {
+      expect(recipesRepository.createRecipe).toHaveBeenCalledWith(pool, recipe, user.id);
+    }
+  });
+
+  it('still creates and returns the account when seeding the default recipes fails (TEST-254 AC2)', async () => {
+    vi.mocked(usersRepository.findUserByEmail).mockResolvedValue(null);
+    vi.mocked(usersRepository.createUser).mockResolvedValue(user);
+    vi.mocked(recipesRepository.createRecipe).mockRejectedValue(new Error('database unavailable'));
+
+    const created = await register(pool, { email: user.email, password: 'password123' });
+
+    expect(created).toEqual(user);
   });
 });
 

@@ -3,8 +3,10 @@ import type { Pool } from 'pg';
 
 import { hashPassword, verifyPassword } from '../auth/passwordHash.js';
 import { generateSessionToken, hashSessionToken } from '../auth/sessionToken.js';
+import { createRecipe } from '../repositories/recipesRepository.js';
 import { createSession, deleteSessionByTokenHash, findActiveSessionByTokenHash } from '../repositories/sessionsRepository.js';
 import { createUser, findUserByEmail, findUserById } from '../repositories/usersRepository.js';
+import { DEFAULT_RECIPES } from './defaultRecipes.js';
 
 export class DuplicateEmailError extends Error {}
 export class InvalidCredentialsError extends Error {}
@@ -27,8 +29,9 @@ export async function register(pool: Pool, credentials: AuthCredentials): Promis
   }
 
   const passwordHash = await hashPassword(credentials.password);
+  let user: User;
   try {
-    return await createUser(pool, { email: credentials.email, passwordHash });
+    user = await createUser(pool, { email: credentials.email, passwordHash });
   } catch (error) {
     // Belt-and-braces against a race between the check above and the insert:
     // the unique index on users.email is the real guarantee (23505 = unique_violation).
@@ -36,6 +39,20 @@ export async function register(pool: Pool, credentials: AuthCredentials): Promis
       throw new DuplicateEmailError();
     }
     throw error;
+  }
+
+  await seedDefaultRecipes(pool, user.id);
+  return user;
+}
+
+// TEST-254: best-effort — a new account is real and usable the moment it's
+// created; a failure here is logged, not thrown, so a seeding hiccup can
+// never turn into a failed registration.
+async function seedDefaultRecipes(pool: Pool, userId: string): Promise<void> {
+  try {
+    await Promise.all(DEFAULT_RECIPES.map((recipe) => createRecipe(pool, recipe, userId)));
+  } catch (error) {
+    console.error(`failed to seed default recipes for user ${userId}`, error);
   }
 }
 

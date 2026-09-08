@@ -3,7 +3,13 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../../src/app.js';
+import { DEFAULT_RECIPES } from '../../src/services/defaultRecipes.js';
 import { createTestPool, truncateAll } from './testDb.js';
+
+// TEST-254: every account gets DEFAULT_RECIPES.length starter recipes the
+// moment it registers, so "a fresh account's list" is never actually empty —
+// every count below accounts for that baseline explicitly instead of
+// assuming zero.
 
 const pool = createTestPool();
 const app = createApp(pool);
@@ -61,7 +67,7 @@ describe('POST /api/recipes (AC1)', () => {
     });
 
     const listRes = await agent.get('/api/recipes');
-    expect(listRes.body).toEqual([]);
+    expect(listRes.body).toHaveLength(DEFAULT_RECIPES.length);
   });
 });
 
@@ -71,7 +77,7 @@ describe('GET /api/recipes and /api/recipes/:id (AC2)', () => {
 
     const listRes = await agent.get('/api/recipes');
     expect(listRes.status).toBe(200);
-    expect(listRes.body).toHaveLength(1);
+    expect(listRes.body).toHaveLength(DEFAULT_RECIPES.length + 1);
 
     const getRes = await agent.get(`/api/recipes/${created.body.id}`);
     expect(getRes.status).toBe(200);
@@ -129,7 +135,7 @@ describe('DELETE /api/recipes/:id (AC4)', () => {
     expect(getRes.status).toBe(404);
 
     const listRes = await agent.get('/api/recipes');
-    expect(listRes.body).toEqual([]);
+    expect(listRes.body).toHaveLength(DEFAULT_RECIPES.length);
 
     const { rows } = await pool.query('SELECT * FROM recipe_ingredients WHERE recipe_id = $1', [
       created.body.id,
@@ -171,7 +177,11 @@ describe('TEST-253: recipes are scoped to the authenticated account', () => {
     const listRes = await otherAgent.get('/api/recipes');
 
     expect(listRes.status).toBe(200);
-    expect(listRes.body).toEqual([]);
+    // otherAgent has its own DEFAULT_RECIPES (TEST-254) from registering —
+    // "isolated" means none of those are agent's Tomato Soup, not that the
+    // list is empty.
+    expect(listRes.body).toHaveLength(DEFAULT_RECIPES.length);
+    expect(listRes.body.some((r: { title: string }) => r.title === sampleInput.title)).toBe(false);
   });
 
   it("returns 404, not the record, reading another account's recipe by id (AC2)", async () => {
@@ -217,5 +227,23 @@ describe('TEST-253: recipes are scoped to the authenticated account', () => {
     const meRes = await agent.get('/api/auth/me');
 
     expect(rows[0]?.user_id).toBe(meRes.body.user.id);
+  });
+});
+
+describe('TEST-254: new signups get default starter recipes', () => {
+  it('the default recipes are there right after registering, scoped to that account (AC1)', async () => {
+    const listRes = await agent.get('/api/recipes');
+
+    expect(listRes.status).toBe(200);
+    expect(listRes.body).toHaveLength(DEFAULT_RECIPES.length);
+    expect(listRes.body.map((r: { title: string }) => r.title).sort()).toEqual(
+      DEFAULT_RECIPES.map((r) => r.title).sort(),
+    );
+
+    const meRes = await agent.get('/api/auth/me');
+    for (const recipe of listRes.body as { id: string }[]) {
+      const { rows } = await pool.query('SELECT user_id FROM recipes WHERE id = $1', [recipe.id]);
+      expect(rows[0]?.user_id).toBe(meRes.body.user.id);
+    }
   });
 });
