@@ -200,6 +200,10 @@ Do not rewrite or squash another session's commits. Do not force-push.
 
 A ticket carries two comments and no more. **Both are short and written for a non-engineer** — a PM or stakeholder reading the ticket should understand what happened without asking a developer. The technical detail belongs in the feature doc, not the ticket.
 
+**Read and write tickets through the `beacon-production` MCP tools only.** Never through a browser. Scraping a ticket page gives you parsed HTML you cannot fully trust, and clicking through the interface to change a status or post a comment gives you no structured confirmation that the right field on the right ticket changed. The MCP returns the ticket as data and tells you what it wrote.
+
+If those tools are not available in your session, **say so immediately** rather than working around it. A browser workaround looks like it is functioning while quietly producing a worse audit trail, and the fix — enabling the connector — is one the user makes in a moment. One session has already spent a stretch of this project guessing at requirements it could not read; that must not happen again silently.
+
 **The start comment**, posted when you move the ticket to In Progress. Three lines: who is working it, the branch, and what it was waiting on.
 
 **The summary comment**, posted when the work is done and **before** merging. Keep it to a short paragraph, or a handful of plain bullets:
