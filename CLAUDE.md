@@ -51,7 +51,7 @@ Each of `frontend/` and `backend/` has its own `package.json`, `tsconfig.json`, 
 ## Database conventions
 
 - Schema changes go through `node-pg-migrate` migrations only — never hand-edit the schema in a running database.
-- One migration per logical change; migrations are forward-only and named descriptively (`20260908_create_recipes_table`).
+- One migration per logical change; migrations are forward-only and named with a full timestamp plus a description (`20260908143000_create_recipes_table`). A date alone (`20260908_…`) is not parseable as a timestamp — `node-pg-migrate` warns and falls back to sorting by filename, which silently breaks ordering as soon as two migrations share a date. Never rename a migration that has already been applied.
 - `snake_case` table and column names. Foreign keys for `recipe_ingredients.recipe_id → recipes.id` and `shopping_list_items` referencing the recipe(s) it was generated from.
 
 ## Testing
@@ -132,7 +132,7 @@ A branch is finished when **all** of these are true, not when the code works:
   - Touches a user-facing screen or flow → Vitest + React Testing Library component tests **and** a Playwright E2E.
   - Touches neither — a pure data, client or config layer with no screen — → the layers that do apply. The ticket's own definition of done names which those are; don't invent test layers for a surface the code doesn't have, and don't skip ones it does.
 - The feature doc exists at `docs/features/<TICKET-KEY>-<slug>.md`.
-- The completion comment is on the Beacon ticket.
+- **The Beacon ticket is updated and the completion comment is posted — before the merge, not after.** The trail is written while the work is fresh and while it can still change the decision to merge; a comment written afterwards is a formality, and a comment never written means nobody outside the session knows what landed. No branch reaches `main` ahead of its ticket.
 - **Every ticket it depends on is already merged into `main`.** This is correctness, not permission: it's what stops a branch built against a stub landing before the thing it stubbed.
 
 Then merge it, in this order:
