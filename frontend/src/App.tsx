@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from 'react-router-dom';
 
+import { RecipeBox } from './features/recipes/RecipeBox.tsx';
 import { DesignSystemPage } from './pages/DesignSystemPage.tsx';
 
 function HomePage() {
@@ -7,6 +8,9 @@ function HomePage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 px-4 text-center">
       <h1 className="text-3xl font-bold text-gray-900">Recipe Box</h1>
       <p className="text-gray-600">Save recipes, generate a shopping list from them.</p>
+      <Link to="/recipes" className="text-sm font-medium text-blue-600 hover:underline">
+        Go to your recipe box &rarr;
+      </Link>
       <Link to="/design" className="text-sm font-medium text-blue-600 hover:underline">
         View design system &rarr;
       </Link>
@@ -18,6 +22,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/recipes" element={<RecipeBox />} />
       <Route path="/design" element={<DesignSystemPage />} />
     </Routes>
   );
