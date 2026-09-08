@@ -2,6 +2,8 @@
 
 Written reference for the components in `frontend/src/components/ui/`. This is the reference copy — the live, visual version is `http://localhost:5173/design`. Keep both in sync: a new component or variant goes into `components/ui/`, the `/design` page, and this file together.
 
+`/design` has no link pointing to it anywhere a user can see (TEST-249) — it's an internal reference, not a user-facing screen. The route itself still works; visit it directly during development.
+
 All components are Tailwind-classes-only (no `style` prop) and accept a `className` to extend/override, unless noted otherwise.
 
 ## Theme

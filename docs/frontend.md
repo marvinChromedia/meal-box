@@ -6,7 +6,7 @@ React 18 + Vite + TypeScript (`strict: true`) + Tailwind. Mobile-responsive by d
 
 - Function components and hooks only. No class components.
 - Feature-folder layout: a component, its test and its hooks live together — `src/features/recipes/RecipeCard.tsx`, `RecipeCard.test.tsx`.
-- Shared UI in `src/components/ui/`. Shared library code in `src/lib/`.
+- Shared UI in `src/components/ui/`. The app shell (layout, header, page-header) in `src/components/layout/`. Shared library code in `src/lib/`.
 - `PascalCase` components, `camelCase` functions/variables/hooks (`useShoppingList`), `SCREAMING_SNAKE_CASE` only for true constants.
 
 ## Types
@@ -26,6 +26,16 @@ Reusable components live in `frontend/src/components/ui/`: `Button`, `Input`, `T
 Reuse these rather than duplicating Tailwind classes. If a screen genuinely needs a new component or variant, add it in **all three places in the same change**: `components/ui/`, the `/design` page, and `design-system.md`. One without the others rots immediately.
 
 Use `Modal` for destructive confirmations — deleting a recipe, clearing a list.
+
+## App shell
+
+`src/components/layout/AppLayout.tsx` wraps every route (mounted once, as the element of a parent `<Route>` in `App.tsx`, with the real routes nested inside it as children rendered through `<Outlet/>`). It owns the app's one `<main>` and renders `Header` above it — no screen declares its own `<main>` or page container.
+
+`Header` reads `useCurrentUser()` to render two real states, not one with a loading gap papered over: **signed in** shows the "MealBox" brand, navigation between the recipe box and shopping list (`NavLink`, which sets `aria-current="page"` on the active one automatically), the signed-in user's email linking to `/account`, and a sign-out button. **Signed out** (the login/register pages render through this same shell) shows only the brand — no navigation into guarded screens, no sign-out control. Add a new primary nav destination here, not by hand in individual screens.
+
+`PageHeader` (title + an optional actions slot, rendering the page's one `<h1>`) is separate from `Header` and used locally by screens that have a title-plus-toolbar pattern (recipe box, shopping list, recipe detail, recipe form). It's deliberately not part of `AppLayout` — a screen's own unit tests only need `PageHeader`, not the whole nav shell. A screen without that pattern (the auth pages, the design-system page) still owes the page exactly one real `<h1>`, achieved however fits — e.g. the auth pages wrap their existing `CardHeader` text in a real `<h1>` rather than adding a second title row above the card.
+
+Each screen still picks its own content width (`max-w-2xl` for lists/forms, `max-w-md` for auth cards, `max-w-5xl` for the design-system page) — `AppLayout`'s `<main>` supplies the shared horizontal padding and vertical rhythm once; it doesn't force one width on every screen.
 
 ## Styling
 

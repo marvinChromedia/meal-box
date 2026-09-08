@@ -10,11 +10,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { data: user, isLoading } = useCurrentUser();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
-        Loading…
-      </div>
-    );
+    return <div className="flex justify-center py-10 text-sm text-ink-muted">Loading…</div>;
   }
 
   if (!user) {

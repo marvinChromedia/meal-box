@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 
+import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
@@ -59,15 +60,17 @@ export function ShoppingList() {
   }
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6 sm:py-10">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Shopping List</h1>
-        {items.length > 0 ? (
-          <Button variant="outline" size="sm" onClick={() => setClearConfirmOpen(true)}>
-            Clear list
-          </Button>
-        ) : null}
-      </div>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+      <PageHeader
+        title="Shopping List"
+        actions={
+          items.length > 0 ? (
+            <Button variant="outline" size="sm" onClick={() => setClearConfirmOpen(true)}>
+              Clear list
+            </Button>
+          ) : undefined
+        }
+      />
 
       {listQuery.isPending ? (
         <LoadingState label="Loading your shopping list…" rows={4} />
@@ -113,7 +116,7 @@ export function ShoppingList() {
 
       <form
         onSubmit={handleAddItem}
-        className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-end"
+        className="flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-end"
       >
         <Input
           label="Item"
@@ -162,6 +165,6 @@ export function ShoppingList() {
           </Button>
         </div>
       </Modal>
-    </main>
+    </div>
   );
 }

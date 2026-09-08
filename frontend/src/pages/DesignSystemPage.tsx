@@ -40,7 +40,7 @@ export function DesignSystemPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-12 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-12">
       <header>
         <h1 className="font-display text-3xl font-bold text-ink">Design System</h1>
         <p className="mt-1 text-ink-muted">Reusable Tailwind-based UI components for Recipe Box.</p>
@@ -63,7 +63,8 @@ export function DesignSystemPage() {
 
       <Section title="Typography">
         <div className="flex flex-col gap-2">
-          <h1 className="font-display text-3xl font-bold text-ink">Heading 1</h1>
+          {/* A font-size sample, not a real page heading — the page's one <h1> is above (TEST-249 AC3). */}
+          <p className="font-display text-3xl font-bold text-ink">Heading 1</p>
           <h2 className="font-display text-2xl font-semibold text-ink">Heading 2</h2>
           <h3 className="font-display text-xl font-semibold text-ink">Heading 3</h3>
           <h4 className="font-display text-lg font-medium text-ink">Heading 4</h4>
@@ -202,6 +203,6 @@ export function DesignSystemPage() {
           </Modal>
         </div>
       </Section>
-    </main>
+    </div>
   );
 }

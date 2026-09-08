@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { PageHeader } from '../../components/layout/PageHeader';
 import { Alert } from '../../components/ui/Alert';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -29,11 +30,11 @@ export function RecipeBox() {
   }, [generateFlow.isGenerated, navigate]);
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6 sm:py-10">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-gray-900">Recipe Box</h1>
-        <div className="flex items-center gap-2">
-          {selection.isSelectionMode ? (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+      <PageHeader
+        title="Recipe Box"
+        actions={
+          selection.isSelectionMode ? (
             <Button variant="ghost" size="sm" onClick={selection.exitSelectionMode}>
               Cancel
             </Button>
@@ -46,9 +47,9 @@ export function RecipeBox() {
                 Add recipe
               </Button>
             </>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       <Input
         label="Search by title or ingredient"
@@ -59,8 +60,8 @@ export function RecipeBox() {
       />
 
       {selection.isSelectionMode ? (
-        <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-700" aria-live="polite">
+        <div className="flex flex-col gap-2 rounded-lg border border-line bg-ground p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-ink-muted" aria-live="polite">
             {selection.selectedCount} recipe{selection.selectedCount === 1 ? '' : 's'} selected
           </p>
           <div className="flex flex-col items-start gap-1 sm:items-end">
@@ -72,7 +73,7 @@ export function RecipeBox() {
               {generateFlow.isGenerating ? 'Generating…' : 'Generate shopping list'}
             </Button>
             {selection.selectedCount === 0 ? (
-              <p className="text-xs text-gray-500">Select at least one recipe to generate a list.</p>
+              <p className="text-xs text-ink-muted">Select at least one recipe to generate a list.</p>
             ) : null}
           </div>
         </div>
@@ -122,6 +123,6 @@ export function RecipeBox() {
           ))}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

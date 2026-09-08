@@ -18,12 +18,14 @@ export function AccountPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-4">
       <Card>
-        <CardHeader>Your account</CardHeader>
+        <CardHeader>
+          <h1>Your account</h1>
+        </CardHeader>
         <CardBody className="flex flex-col gap-4">
-          <p className="text-gray-700">
-            Signed in as <span className="font-medium text-gray-900">{user?.email}</span>
+          <p className="text-ink-muted">
+            Signed in as <span className="font-medium text-ink">{user?.email}</span>
           </p>
           <Button
             variant="outline"
@@ -35,6 +37,6 @@ export function AccountPage() {
           </Button>
         </CardBody>
       </Card>
-    </main>
+    </div>
   );
 }

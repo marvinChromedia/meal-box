@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useReducer } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
@@ -29,7 +30,7 @@ function IngredientRow({
   removable: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 sm:flex-row sm:items-end sm:gap-3">
+    <div className="flex flex-col gap-2 rounded-md border border-line p-3 sm:flex-row sm:items-end sm:gap-3">
       <div className="flex-1">
         <Input
           label="Ingredient name"
@@ -88,7 +89,7 @@ function StepRow({
   removable: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 sm:flex-row sm:items-start sm:gap-3">
+    <div className="flex flex-col gap-2 rounded-md border border-line p-3 sm:flex-row sm:items-start sm:gap-3">
       <div className="flex-1">
         <Textarea
           label={`Step ${index + 1}`}
@@ -180,14 +181,8 @@ function RecipeFormFields({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      noValidate
-      className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-6 sm:py-10"
-    >
-      <h1 className="text-2xl font-bold text-gray-900">
-        {mode === 'edit' ? 'Edit recipe' : 'Add a recipe'}
-      </h1>
+    <form onSubmit={handleSubmit} noValidate className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      <PageHeader title={mode === 'edit' ? 'Edit recipe' : 'Add a recipe'} />
 
       {state.submitError ? (
         <ErrorState title="Couldn't save the recipe" message={state.submitError} />
@@ -202,7 +197,7 @@ function RecipeFormFields({
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Ingredients</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">Ingredients</h2>
           <Button
             type="button"
             variant="outline"
@@ -233,7 +228,7 @@ function RecipeFormFields({
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Steps</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">Steps</h2>
           <Button
             type="button"
             variant="outline"
@@ -290,27 +285,27 @@ export function RecipeForm() {
 
   if (query.isPending) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-6 sm:py-10">
+      <div className="mx-auto w-full max-w-2xl">
         <LoadingState label="Loading recipe…" rows={3} />
-      </main>
+      </div>
     );
   }
 
   if (query.isError) {
     if (query.error instanceof ApiClientError && query.error.status === 404) {
       return (
-        <main className="mx-auto max-w-2xl px-4 py-6 sm:py-10">
+        <div className="mx-auto w-full max-w-2xl">
           <EmptyState
             title="Recipe not found"
             description="This recipe doesn't exist, or it was deleted."
           />
-        </main>
+        </div>
       );
     }
     return (
-      <main className="mx-auto max-w-2xl px-4 py-6 sm:py-10">
+      <div className="mx-auto w-full max-w-2xl">
         <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
-      </main>
+      </div>
     );
   }
 

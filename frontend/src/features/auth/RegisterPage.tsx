@@ -5,19 +5,21 @@ import { RegisterForm } from './RegisterForm.tsx';
 
 export function RegisterPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-4">
       <Card>
-        <CardHeader>Create your account</CardHeader>
+        <CardHeader>
+          <h1>Create your account</h1>
+        </CardHeader>
         <CardBody className="flex flex-col gap-4">
           <RegisterForm />
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-ink-muted">
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:underline">
+            <Link to="/login" className="font-medium text-accent hover:underline">
               Sign in
             </Link>
           </p>
         </CardBody>
       </Card>
-    </main>
+    </div>
   );
 }
