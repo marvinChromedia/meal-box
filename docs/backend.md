@@ -75,7 +75,7 @@ Do not fix someone else's contamination with `migrate:down` on shared state whil
 
 Neither `recipes` nor `shopping_list_items` has a `user_id` column yet. Adding one is an additive migration, not a rewrite.
 
-**`shopping_list_items.quantity_edited` is backend bookkeeping, deliberately not part of the shared `ShoppingListItem` contract.** It records whether a quantity was hand-edited, and can't be inferred by comparing the stored value against a recalculation — editing 2 to 2 still counts as edited. TEST-76's regeneration merge reads it; TEST-154's quantity-edit endpoint is what sets it.
+**`shopping_list_items.quantity_edited` is backend bookkeeping, deliberately not part of the shared `ShoppingListItem` contract.** It records whether a quantity was hand-edited, and can't be inferred by comparing the stored value against a recalculation — editing 2 to 2 still counts as edited. TEST-76's regeneration merge reads it; `PATCH /api/shopping-list/items/:id` (TEST-234) is what sets it, whenever the patch includes a `quantity`.
 
 ## Tests
 

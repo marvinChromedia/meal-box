@@ -1,11 +1,17 @@
 import { randomUUID } from 'node:crypto';
 
-import type { GenerateShoppingListInput, Recipe, ShoppingList } from '@recipe-box/shared';
+import type {
+  GenerateShoppingListInput,
+  Recipe,
+  ShoppingList,
+  ShoppingListItemInput,
+} from '@recipe-box/shared';
 import type { Pool } from 'pg';
 
 import * as recipesRepository from '../repositories/recipesRepository.js';
 import type {
   ShoppingListItemForMerge,
+  ShoppingListItemPatch,
   ShoppingListItemUpsert,
 } from '../repositories/shoppingListsRepository.js';
 import * as shoppingListsRepository from '../repositories/shoppingListsRepository.js';
@@ -175,5 +181,33 @@ export async function generateShoppingList(
 }
 
 export async function getCurrentShoppingList(pool: Pool): Promise<ShoppingList | null> {
+  return shoppingListsRepository.getCurrentShoppingList(pool);
+}
+
+export async function addShoppingListItem(
+  pool: Pool,
+  input: ShoppingListItemInput,
+): Promise<ShoppingList> {
+  return shoppingListsRepository.addShoppingListItem(pool, input);
+}
+
+/** Returns null when the item id doesn't exist — the caller maps that to a 404. */
+export async function updateShoppingListItem(
+  pool: Pool,
+  itemId: string,
+  patch: ShoppingListItemPatch,
+): Promise<ShoppingList | null> {
+  const updated = await shoppingListsRepository.updateShoppingListItem(pool, itemId, patch);
+  if (!updated) return null;
+  return shoppingListsRepository.getCurrentShoppingList(pool);
+}
+
+/** Returns null when the item id doesn't exist — the caller maps that to a 404. */
+export async function removeShoppingListItem(
+  pool: Pool,
+  itemId: string,
+): Promise<ShoppingList | null> {
+  const removed = await shoppingListsRepository.removeShoppingListItem(pool, itemId);
+  if (!removed) return null;
   return shoppingListsRepository.getCurrentShoppingList(pool);
 }

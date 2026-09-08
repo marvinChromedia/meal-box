@@ -322,3 +322,110 @@ export async function applyShoppingListMerge(
   }
   return list;
 }
+
+// --- Per-item operations (TEST-234). Small, direct functions — deliberately
+// not routed through applyShoppingListMerge, whose upsert shape assumes a
+// full aggregation pass rather than a single targeted change. ---
+
+export interface NewManualShoppingListItem {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+/**
+ * Adds a hand-added item (empty sourceRecipeIds, per the shared "manual"
+ * convention). Creates the list on first use if none exists yet, the same
+ * lazy-bootstrap the generate endpoint already does — a shopper can start a
+ * list by adding an item by hand without ever having generated one.
+ */
+export async function addShoppingListItem(
+  pool: Pool,
+  input: NewManualShoppingListItem,
+): Promise<ShoppingList> {
+  const list = await withTransaction(pool, async (client) => {
+    const current = await getCurrentShoppingListForMerge(client);
+    let listId: string;
+    let position: number;
+
+    if (current) {
+      listId = current.id;
+      position =
+        current.items.length > 0 ? Math.max(...current.items.map((item) => item.position)) + 1 : 0;
+    } else {
+      listId = randomUUID();
+      position = 0;
+      await client.query(`INSERT INTO shopping_lists (id) VALUES ($1)`, [listId]);
+    }
+
+    await client.query(
+      `INSERT INTO shopping_list_items (id, shopping_list_id, name, quantity, unit, checked, quantity_edited, position)
+       VALUES ($1, $2, $3, $4, $5, false, false, $6)`,
+      [randomUUID(), listId, input.name, input.quantity, input.unit, position],
+    );
+
+    return getShoppingListById(client, listId);
+  });
+
+  if (!list) {
+    throw new Error('shopping list was not found immediately after adding an item to it');
+  }
+  return list;
+}
+
+export interface ShoppingListItemPatch {
+  checked?: boolean;
+  quantity?: number;
+  unit?: string;
+}
+
+/**
+ * Updates one item. When the patch includes a quantity, also sets
+ * quantity_edited (so regeneration never recalculates it — TEST-76 rule 2)
+ * and bumps the parent list's updated_at (AC5). Returns false if no item
+ * with that id exists — the caller maps that to a 404 — without writing
+ * anything.
+ */
+export async function updateShoppingListItem(
+  pool: Pool,
+  itemId: string,
+  patch: ShoppingListItemPatch,
+): Promise<boolean> {
+  const setClauses: string[] = [];
+  const values: unknown[] = [itemId];
+
+  if (patch.checked !== undefined) {
+    values.push(patch.checked);
+    setClauses.push(`checked = $${values.length}`);
+  }
+  if (patch.quantity !== undefined) {
+    values.push(patch.quantity);
+    setClauses.push(`quantity = $${values.length}`, 'quantity_edited = true');
+  }
+  if (patch.unit !== undefined) {
+    values.push(patch.unit);
+    setClauses.push(`unit = $${values.length}`);
+  }
+
+  return withTransaction(pool, async (client) => {
+    const result = await client.query<{ shopping_list_id: string }>(
+      `UPDATE shopping_list_items SET ${setClauses.join(', ')} WHERE id = $1 RETURNING shopping_list_id`,
+      values,
+    );
+    const row = result.rows[0];
+    if (!row) return false;
+
+    if (patch.quantity !== undefined) {
+      await client.query(`UPDATE shopping_lists SET updated_at = now() WHERE id = $1`, [
+        row.shopping_list_id,
+      ]);
+    }
+    return true;
+  });
+}
+
+/** Removes an item, generated or manual. Returns false if it didn't exist. */
+export async function removeShoppingListItem(pool: Pool, itemId: string): Promise<boolean> {
+  const result = await pool.query('DELETE FROM shopping_list_items WHERE id = $1', [itemId]);
+  return (result.rowCount ?? 0) > 0;
+}

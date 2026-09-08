@@ -41,7 +41,7 @@ describe('POST /api/shopping-list (AC1, AC5)', () => {
     const r2 = await createRecipe(onionTart);
 
     const res = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id, r2.id] });
 
     expect(res.status).toBe(200);
@@ -63,7 +63,7 @@ describe('POST /api/shopping-list (AC1, AC5)', () => {
     });
 
     const res = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
 
     expect(res.body.items).toHaveLength(2);
@@ -77,7 +77,7 @@ describe('POST /api/shopping-list (AC1, AC5)', () => {
     const r1 = await createRecipe(onionSoup);
 
     const generateRes = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
     expect(generateRes.status).toBe(200);
     expect(generateRes.body.id).toEqual(expect.any(String));
@@ -91,7 +91,7 @@ describe('POST /api/shopping-list (AC1, AC5)', () => {
 
 describe('AC6: degenerate input', () => {
   it('an empty selection is a well-formed (empty, on first generation) list, not an error', async () => {
-    const res = await request(app).post('/api/shopping-list').send({ recipeIds: [] });
+    const res = await request(app).post('/api/shopping-list/generate').send({ recipeIds: [] });
     expect(res.status).toBe(200);
     expect(res.body.items).toEqual([]);
   });
@@ -99,7 +99,7 @@ describe('AC6: degenerate input', () => {
   it('a single recipe generates correctly', async () => {
     const r1 = await createRecipe(onionSoup);
     const res = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
@@ -107,7 +107,7 @@ describe('AC6: degenerate input', () => {
 
   it('a nonexistent recipe id returns 404, not a crash or a half-written list', async () => {
     const res = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: ['11111111-1111-1111-1111-111111111111'] });
 
     expect(res.status).toBe(404);
@@ -119,7 +119,7 @@ describe('AC6: degenerate input', () => {
 
   it('rejects a malformed body with 400 before touching the database', async () => {
     const res = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: ['not-a-uuid'] });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: { message: expect.any(String), code: 'VALIDATION_ERROR' } });
@@ -140,13 +140,13 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
   it('rule 1: a non-edited item is freely recalculated on regeneration', async () => {
     const r1 = await createRecipe(onionSoup);
     const first = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
     expect(first.body.items[0].quantity).toBe(1);
 
     const r2 = await createRecipe(onionTart);
     const second = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id, r2.id] });
 
     expect(second.body.id).toBe(first.body.id); // same list, not a new one
@@ -157,7 +157,7 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
   it('rule 2: a hand-edited quantity survives regeneration, but sourceRecipeIds still refreshes', async () => {
     const r1 = await createRecipe(onionSoup);
     const first = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
     const itemId = first.body.items[0].id as string;
 
@@ -170,7 +170,7 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
 
     const r2 = await createRecipe(onionTart);
     const second = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id, r2.id] });
 
     expect(second.body.items).toHaveLength(1);
@@ -182,7 +182,7 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
   it('rule 3: a manually added item is never touched by regeneration', async () => {
     // No manual-add endpoint exists yet (TEST-77) — seed one directly, matching
     // the shared-types convention that empty sourceRecipeIds means "manual".
-    const first = await request(app).post('/api/shopping-list').send({ recipeIds: [] });
+    const first = await request(app).post('/api/shopping-list/generate').send({ recipeIds: [] });
     const listId = first.body.id as string;
     await pool.query(
       `INSERT INTO shopping_list_items (id, shopping_list_id, name, quantity, unit, checked, position)
@@ -192,7 +192,7 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
 
     const r1 = await createRecipe(onionSoup);
     const second = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
 
     const manual = second.body.items.find((i: { name: string }) => i.name === 'Paper towels');
@@ -204,7 +204,7 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
   it('rule 4: checked state survives regeneration', async () => {
     const r1 = await createRecipe(onionSoup);
     const first = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
     const itemId = first.body.items[0].id as string;
 
@@ -212,7 +212,7 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
 
     const r2 = await createRecipe(onionTart);
     const second = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id, r2.id] });
 
     expect(second.body.items[0].checked).toBe(true);
@@ -221,18 +221,18 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
   it('rule 5: an item no longer required by any selected recipe is dropped if never hand-edited', async () => {
     const r1 = await createRecipe(onionSoup);
     const first = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
     expect(first.body.items).toHaveLength(1);
 
-    const second = await request(app).post('/api/shopping-list').send({ recipeIds: [] });
+    const second = await request(app).post('/api/shopping-list/generate').send({ recipeIds: [] });
     expect(second.body.items).toEqual([]);
   });
 
   it('rule 5 continued: a no-longer-required item is kept when it was hand-edited', async () => {
     const r1 = await createRecipe(onionSoup);
     const first = await request(app)
-      .post('/api/shopping-list')
+      .post('/api/shopping-list/generate')
       .send({ recipeIds: [r1.id] });
     const itemId = first.body.items[0].id as string;
 
@@ -241,7 +241,7 @@ describe('Regeneration merges into the existing list (binding decision on TEST-7
       [5, itemId],
     );
 
-    const second = await request(app).post('/api/shopping-list').send({ recipeIds: [] });
+    const second = await request(app).post('/api/shopping-list/generate').send({ recipeIds: [] });
 
     expect(second.body.items).toHaveLength(1);
     expect(second.body.items[0].id).toBe(itemId);
