@@ -54,7 +54,7 @@ npm run migrate:down -w backend
 - `recipes` — id, title, steps `text[]`, tags `text[]`, is_favorite, timestamps
 - `recipe_ingredients` — recipe_id → `recipes.id` `ON DELETE CASCADE`, name, quantity, unit, position
 - `shopping_lists` — id, timestamps
-- `shopping_list_items` — shopping_list_id → `shopping_lists.id` `ON DELETE CASCADE`, name, quantity, unit, checked, position
+- `shopping_list_items` — shopping_list_id → `shopping_lists.id` `ON DELETE CASCADE`, name, quantity, unit, checked, position, `quantity_edited` (added by TEST-76, additive migration)
 - `shopping_list_item_sources` — shopping_list_item_id → `shopping_list_items.id` `ON DELETE CASCADE`, recipe_id
 
 `position` columns carry ordering; anything that must round-trip in saved order depends on them.
@@ -62,6 +62,8 @@ npm run migrate:down -w backend
 **`shopping_list_item_sources.recipe_id` has no foreign key to `recipes`, deliberately.** A line item must keep its record of which recipe it came from even after that recipe is deleted: a cascading key would erase the history, a blocking one would make recipes undeletable. The trade is durable provenance in exchange for possible orphaned ids — so **any code reading that column must tolerate a recipe that no longer exists**, and treat that as a normal case rather than an edge case.
 
 Neither `recipes` nor `shopping_list_items` has a `user_id` column yet. Adding one is an additive migration, not a rewrite.
+
+**`shopping_list_items.quantity_edited` is backend bookkeeping, deliberately not part of the shared `ShoppingListItem` contract.** It records whether a quantity was hand-edited, and can't be inferred by comparing the stored value against a recalculation — editing 2 to 2 still counts as edited. TEST-76's regeneration merge reads it; TEST-154's quantity-edit endpoint is what sets it.
 
 ## Tests
 

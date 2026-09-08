@@ -37,11 +37,10 @@ Each layer has one job. Controllers parse, validate and shape responses. Service
 - `backend/src/app.ts`, `index.ts` — Express app, with the listener separate so tests can import the app.
 - `backend/src/db.ts`, `db/queryable.ts`, `db/withTransaction.ts` — typed `pg` pool, a queryable abstraction, and transaction support for multi-row writes.
 - `backend/src/repositories/` — `recipesRepository.ts`, `shoppingListsRepository.ts`.
-- `backend/migrations/` — two applied migrations creating the recipe and shopping-list tables.
+- `backend/migrations/` — three applied migrations: the recipe and shopping-list tables, plus an additive `quantity_edited` column on `shopping_list_items` (TEST-76).
 - `frontend/src/components/ui/` — ten UI components; see [`design-system.md`](./design-system.md).
 - `frontend/src/pages/DesignSystemPage.tsx` — the live gallery at `/design`.
 
-- `backend/src/routes/`, `controllers/`, `services/`, `schemas/` — the HTTP surface for recipes, following the layering above. `createApp(pool)` takes an optional pool so tests can point it at the test database.
+- `backend/src/routes/`, `controllers/`, `services/`, `schemas/` — the HTTP surface for recipes and the shopping list, following the layering above. `createApp(pool)` takes an optional pool so tests can point it at the test database.
 - `backend/src/middleware/` — `validateBody` / `validateParams` (Zod at the boundary) and the async error handler.
-
-The shopping-list HTTP surface does not exist yet — its repository is there, its endpoints are not. Follow the layering when you add them rather than calling a repository from a route.
+- `backend/src/services/shoppingListService.ts` — the ingredient-combining and regeneration-merge logic, as two pure, DB-free functions (`aggregateIngredients`, `mergeShoppingList`).

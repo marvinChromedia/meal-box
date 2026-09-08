@@ -1,6 +1,6 @@
 # API
 
-REST over Express. Recipes are implemented; the shopping list is not. The conventions below apply to anything new.
+REST over Express. Recipes and shopping-list generation are implemented. The conventions below apply to anything new.
 
 ## Implemented
 
@@ -26,9 +26,25 @@ Validation requires a non-empty title, at least one step and at least one ingred
 
 **There is no search query parameter, deliberately** — recipe search filters client-side over the already-fetched list.
 
-## Specified but not yet built
+### `/api/shopping-list`
 
-`/api/shopping-list` is specified in Beacon ticket TEST-76 and does not exist yet. Do not write client code against it as though it were live — see [`architecture.md`](./architecture.md) for the contract to build against, and use a typed mock at the `shared/` boundary until it lands.
+Mounted in `backend/src/app.ts`, routed in `backend/src/routes/shoppingListRoutes.ts`:
+
+| Method | Path                 | Notes                                                                                 |
+| ------ | -------------------- | ------------------------------------------------------------------------------------- |
+| `POST` | `/api/shopping-list` | Body validated against `GenerateShoppingListInput`; generates or regenerates the list |
+| `GET`  | `/api/shopping-list` | Reads the current list; `404` if none has ever been generated                         |
+
+There is exactly one shopping list — `POST` doesn't create a new one each time. The
+first call creates it; every later call **merges** the fresh aggregation into it rather
+than replacing it, so hand-edited quantities, checked-off state and manually added
+items survive a regeneration. See
+[`docs/features/TEST-76-shopping-list-generation.md`](./features/TEST-76-shopping-list-generation.md)
+for the full merge rules and why they exist.
+
+`recipeIds` may be empty — that's a valid regeneration (it drops every non-edited
+generated item), not an error. An id for a recipe that doesn't exist returns `404
+RECIPE_NOT_FOUND` and never writes anything.
 
 ## Conventions for any new endpoint
 

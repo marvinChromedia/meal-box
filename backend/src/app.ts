@@ -5,6 +5,7 @@ import type { Pool } from 'pg';
 
 import { pool as defaultPool } from './db.js';
 import { createRecipesRouter } from './routes/recipesRoutes.js';
+import { createShoppingListRouter } from './routes/shoppingListRoutes.js';
 
 export function createApp(pool: Pool = defaultPool) {
   const app = express();
@@ -33,6 +34,7 @@ export function createApp(pool: Pool = defaultPool) {
   });
 
   app.use('/api/recipes', createRecipesRouter(pool));
+  app.use('/api/shopping-list', createShoppingListRouter(pool));
 
   // Catches anything an async route handler forwarded via next(err) — keeps
   // the { error: { message, code } } shape instead of leaking a stack trace.
