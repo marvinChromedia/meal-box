@@ -63,6 +63,16 @@ describe('RecipeDetail (against the typed mock)', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveTextContent('Garlic Butter Pasta');
 
+    // Hold the delete request open so "confirmed" and "resolved" can't be
+    // confused for each other by timing (TEST-235) — the mutation is still
+    // pending when we assert the confirm click actually triggered it, and
+    // navigation is asserted only after we deliberately resolve it.
+    let resolveRemove!: () => void;
+    const pendingRemove = new Promise<void>((resolve) => {
+      resolveRemove = resolve;
+    });
+    const removeSpy = vi.spyOn(recipesApi, 'remove').mockReturnValueOnce(pendingRemove);
+
     // The header and the dialog both have a "Delete" button; click the one inside the dialog.
     const confirmButton = screen
       .getAllByRole('button', { name: /delete/i })
@@ -70,7 +80,15 @@ describe('RecipeDetail (against the typed mock)', () => {
     expect(confirmButton).toBeDefined();
     fireEvent.click(confirmButton!);
 
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Deleting…' })).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByText('Recipe Box Page')).not.toBeInTheDocument();
+
+    resolveRemove();
     await waitFor(() => expect(screen.getByText('Recipe Box Page')).toBeInTheDocument());
+    removeSpy.mockRestore();
   });
 
   it('cancelling the delete confirmation changes nothing (AC4)', async () => {
