@@ -9,8 +9,9 @@
     "start": "node dist/index.js",
     "migrate:up": "node-pg-migrate up --tsx -j ts -m migrations",
     "migrate:down": "node-pg-migrate down --tsx -j ts -m migrations",
-    "test": "npm run test:unit && npm run test:integration",
+    "test": "npm run test:unit && npm run test:contract && npm run test:integration",
     "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:contract": "vitest run --config vitest.contract.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {

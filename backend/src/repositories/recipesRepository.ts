@@ -100,6 +100,36 @@ export async function listRecipes(db: Queryable): Promise<Recipe[]> {
   return result.rows.map((row) => mapRowToRecipe(recipeRowSchema.parse(row)));
 }
 
-export async function deleteRecipe(db: Queryable, id: string): Promise<void> {
-  await db.query('DELETE FROM recipes WHERE id = $1', [id]);
+export async function updateRecipe(
+  pool: Pool,
+  id: string,
+  input: RecipeInput,
+): Promise<Recipe | null> {
+  return withTransaction(pool, async (client) => {
+    const updateResult = await client.query(
+      `UPDATE recipes SET title = $2, steps = $3, tags = $4, updated_at = now() WHERE id = $1`,
+      [id, input.title, input.steps, input.tags],
+    );
+    if (updateResult.rowCount === 0) {
+      return null;
+    }
+
+    await client.query(`DELETE FROM recipe_ingredients WHERE recipe_id = $1`, [id]);
+    await Promise.all(
+      input.ingredients.map((ingredient, position) =>
+        client.query(
+          `INSERT INTO recipe_ingredients (id, recipe_id, name, quantity, unit, position)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [randomUUID(), id, ingredient.name, ingredient.quantity, ingredient.unit, position],
+        ),
+      ),
+    );
+
+    return getRecipeById(client, id);
+  });
+}
+
+export async function deleteRecipe(db: Queryable, id: string): Promise<boolean> {
+  const result = await db.query('DELETE FROM recipes WHERE id = $1', [id]);
+  return (result.rowCount ?? 0) > 0;
 }

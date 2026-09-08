@@ -7,6 +7,7 @@ import {
   deleteRecipe,
   getRecipeById,
   listRecipes,
+  updateRecipe,
 } from '../../src/repositories/recipesRepository.js';
 import { createTestPool, truncateAll } from './testDb.js';
 
@@ -65,6 +66,31 @@ describe('recipesRepository (integration)', () => {
       created.id,
     ]);
     expect(rows).toHaveLength(0);
+  });
+
+  it('updates a recipe, replacing the ingredient set with no orphans left behind (AC3)', async () => {
+    const created = await createRecipe(pool, sampleRecipe);
+
+    const updated = await updateRecipe(pool, created.id, {
+      title: 'Tomato Soup (updated)',
+      steps: [...sampleRecipe.steps, 'Season to taste'],
+      tags: sampleRecipe.tags,
+      ingredients: [{ name: 'Tomato', quantity: 6, unit: 'whole' }],
+    });
+
+    expect(updated?.title).toBe('Tomato Soup (updated)');
+    expect(updated?.ingredients).toHaveLength(1);
+    expect(updated?.ingredients[0]?.name).toBe('Tomato');
+
+    const { rows } = await pool.query('SELECT * FROM recipe_ingredients WHERE recipe_id = $1', [
+      created.id,
+    ]);
+    expect(rows).toHaveLength(1);
+  });
+
+  it('returns null updating an id that does not exist, without writing anything', async () => {
+    const result = await updateRecipe(pool, '11111111-1111-1111-1111-111111111111', sampleRecipe);
+    expect(result).toBeNull();
   });
 
   it('survives a fresh connection to the database (AC4)', async () => {
