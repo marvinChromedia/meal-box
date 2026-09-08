@@ -100,11 +100,45 @@ Tickets land in dependency order, not in whatever order sessions are free. Each 
 - **Merge order follows dependency order.** A branch built on a stubbed contract merges after the branch that made it real, so the stub is gone before the code lands.
 - **One ticket at a time per session.** Finish it — tests, feature doc, ticket comment — and hand the branch back before picking up the next.
 
-## Ticket comments
+## Ticket comments and status
 
-- One `add_comment` per completed ticket, not two: a short **plain-language summary** first (what changed, written for a non-engineer reader — a PM or stakeholder, not another developer), then the technical what-changed/how-verified details below it.
-- Applies to every ticket worked on — Stories and sub-tasks alike.
-- Beacon's `TEST` project has no QA-handoff status (only TODO / IN_PROGRESS / DONE / CLOSED). Move a ticket to `IN_PROGRESS` when starting it, comment when the work is verified, then leave it at `IN_PROGRESS` — the coordinating session closes it. Don't invent a status.
+Every ticket carries its own audit trail in Beacon, so anyone can reconstruct what happened without reading a chat log. Two comments per ticket, no more:
+
+**1. A start comment**, posted at the same moment the ticket moves to `IN_PROGRESS`. Three lines is plenty — who is working it (which session), the branch name, and what it was gated on. This is what makes an abandoned or duplicated ticket obvious.
+
+**2. A completion comment**, posted when the work is verified, alongside the feature doc:
+
+- A short **plain-language summary first** — what changed, written for a non-engineer reader. A PM or stakeholder should understand it without asking a developer.
+- Then the technical detail below it: what changed, how it was verified (name the test layers that ran), which acceptance criteria are covered, and any decision or assumption a later ticket needs to know about.
+- Once the branch is merged, the merge commit SHA goes on that same comment rather than in a third one.
+
+Applies to every ticket worked on — Stories and sub-tasks alike. Don't post progress commentary between the two; the branch is the progress record.
+
+**Status discipline.** Beacon's `TEST` project has only TODO / IN_PROGRESS / DONE / CLOSED — no QA-handoff status, and don't invent one.
+
+- `TODO` → `IN_PROGRESS` when work actually starts, with the start comment.
+- Stays `IN_PROGRESS` through review and merge.
+- Only the coordinating session moves a ticket to `DONE`, after verifying it against its own acceptance criteria and definition of done — never the session that wrote the code.
+
+## Merging a finished branch
+
+A branch is finished when **all** of these are true, not when the code works:
+
+- Tests pass at every layer that applies to it (frontend unit/component and Playwright; backend unit, integration and API/contract).
+- The feature doc exists at `docs/features/<TICKET-KEY>-<slug>.md`.
+- The completion comment is on the Beacon ticket.
+- Every ticket it depends on is already merged into `main`.
+
+Then the session that wrote it merges it, in this order:
+
+1. `git fetch origin && git rebase origin/main` — rebase, don't merge `main` into the branch.
+2. Re-run the full test suite after the rebase. A green run before the rebase proves nothing about the merged result.
+3. Squash to a single commit (see Git / commits).
+4. Tell the coordinating session the branch is ready and hand it the ticket key. Wait for the go-ahead — the coordinating session verifies against the acceptance criteria and knows what else is in flight.
+5. On the go-ahead: `git checkout main && git merge --ff-only <branch> && git push origin main`. If the fast-forward is refused, `main` moved — go back to step 1 rather than forcing anything.
+6. Add the merge commit SHA to the ticket's completion comment, remove your worktree, and report back. The coordinating session closes the ticket.
+
+Never merge a branch whose dependency hasn't landed, and never force-push `main`.
 
 ## Tooling
 
