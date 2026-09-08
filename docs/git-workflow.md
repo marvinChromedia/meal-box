@@ -13,6 +13,18 @@ Never two sessions in one checkout. Branch names are `feat/<TICKET-KEY>-<slug>`,
 
 **Never remove the worktree you are running in.** A session whose working directory disappears cannot be reached any more — it drops out of the project mid-flight, taking whatever it knew with it. Leave cleanup to the PM session, or move out of the directory first.
 
+## If `git` is refused inside a worktree
+
+A command proxy configured outside this repository rewrites `git ...` to `rtk git ...`. Inside a worktree that rewrite can then be refused by a worktree-isolation guard, because the guard cannot verify the rewritten command targets the worktree it is running in.
+
+Call git by absolute path to skip the rewrite:
+
+```bash
+/usr/local/bin/git status
+```
+
+It is a tooling interaction, not a repository problem, and it does not change any of the rules below. Related: the same proxy filters command output — see the exit-code warning in [`testing.md`](./testing.md).
+
 ## Before committing
 
 1. `git status`.
