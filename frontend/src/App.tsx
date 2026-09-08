@@ -5,18 +5,25 @@ import { AccountPage } from './features/auth/AccountPage.tsx';
 import { LoginPage } from './features/auth/LoginPage.tsx';
 import { RegisterPage } from './features/auth/RegisterPage.tsx';
 import { RequireAuth } from './features/auth/RequireAuth.tsx';
+import { HomePage } from './features/home/HomePage.tsx';
 import { RecipeBox } from './features/recipes/RecipeBox.tsx';
 import { RecipeDetail } from './features/recipes/RecipeDetail.tsx';
 import { RecipeForm } from './features/recipes/RecipeForm.tsx';
 import { ShoppingList } from './features/shopping-list/ShoppingList.tsx';
 import { DesignSystemPage } from './pages/DesignSystemPage.tsx';
-import { HomePage } from './pages/HomePage.tsx';
 
 export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/"
+          element={
+            <RequireAuth>
+              <HomePage />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/recipes"
           element={
