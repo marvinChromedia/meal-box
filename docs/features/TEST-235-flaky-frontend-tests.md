@@ -1,55 +1,50 @@
-# TEST-235 — Frontend tests racing a real timer
+# TEST-235 — Two unrelated test-reliability problems
 
 ## What this is
 
-A fix for one test asserting a transient state by racing a real timer (`RecipeDetail.test.tsx`'s "confirms before deleting"), an audit of the rest of the frontend suite for the same pattern, and writing the trap down in `docs/testing.md` so it doesn't get rediscovered from scratch next time.
+Two different causes were behind "some frontend tests fail intermittently," and they needed two different responses: a real race (already fixed elsewhere, audited for anywhere else it might exist) and load-induced timeouts (not a bug, made tolerable and documented).
 
-## Investigation before touching anything
+## Problem A — a racing real timer
 
-Before editing the named test, tried to actually reproduce the failure rather than apply the prescribed fix on faith:
+Already fixed, before this ticket, in `frontend/src/features/shopping-list/hooks.test.tsx`: a test asserting a transient optimistic-then-settled state was racing `waitFor` against the mock layer's real `mockDelay()` timing — reproducible 100% of the time running that file alone, at zero load. The fix (hold a manually controlled promise, assert the mid-flight state explicitly, then resolve it) is already in that file.
 
-- Full frontend suite, 5 consecutive runs: green every time, real exit codes checked.
-- `RecipeBox.test.tsx` + `RecipeDetail.test.tsx` together, 5 more consecutive runs: green every time.
-- Audited every frontend test file for the actual racing pattern (a test asserting a **mid-flight** state — `isPending`, an optimistic update before settlement — without holding a deferred promise open). Only `frontend/src/features/shopping-list/hooks.test.tsx` does this at all, and it already uses the correct pattern; it's the worked example the ticket points at.
+**This ticket's job for Problem A was to audit, not to re-fix.** Checked every frontend test file for the same construction — a test asserting `isPending`, or any other mid-flight state, without holding a deferred promise open. Only the already-fixed file has it. Nothing else needed changing.
 
-Neither `RecipeBox`'s "no matches" test nor `RecipeDetail`'s "confirms before deleting" test, as they stood before this ticket, asserted a mid-flight state — both used `waitFor` to check an eventually-settled outcome, which isn't racy against a 150ms `mockDelay()` under `waitFor`'s 1000ms default timeout regardless of exact timing. So the failure couldn't be reproduced from a cold read of the code, and applying the deferred-promise technique to "confirms before deleting" is done because it makes the test's ordering **provably** explicit rather than incidentally-reliable — not because a specific race was caught in the act during this ticket.
+**`RecipeBox.test.tsx`'s "no matches" test and `RecipeDetail.test.tsx`'s "confirms before deleting" test were investigated and explicitly left alone.** Both were suspected at one point of having Problem A. Neither does: both simply `waitFor` an eventually-settled outcome (no matches shown after typing; navigated away after a real deletion completes), which isn't racy against a 150ms mock delay regardless of timing — `waitFor` polls until the assertion passes, it doesn't care how long that takes. Partway through this ticket, an attempt was made to apply the deferred-promise technique to `RecipeDetail.test.tsx` anyway, on the reasoning that it would make the test's ordering "provably" explicit rather than "incidentally reliable." That was reverted: the current, correct standard is not to rewrite a test that can't be shown broken, and rewriting it briefly reached `main` before being caught and undone in this same branch. See "How it was verified" for the actual failure output that settled this.
 
-## The fix — `RecipeDetail.test.tsx`, "confirms before deleting"
+## Problem B — a starved machine, not a bug
 
-`recipesApi.remove` is now spied with `mockReturnValueOnce` on a manually-controlled promise. The test:
+The two tests above (and a third: `RecipeBox`'s "lists saved recipes") did fail, on separate occasions, with output that has nothing to do with Problem A:
 
-1. Clicks confirm in the delete dialog.
-2. Asserts the button now reads "Deleting…" and the dialog is still open, and that navigation has **not** happened yet — proving the confirm click actually triggered the mutation, deterministically, rather than assuming it because the final state looked right a moment later.
-3. Resolves the held promise itself.
-4. Only then asserts navigation to the recipe box.
+```
+RecipeBox "no matches"                → Unable to find an element with the text: Garlic Butter Pasta
+RecipeBox "lists saved recipes…"      → Unable to find an element with the text: Garlic Butter Pasta
+RecipeDetail "confirms before delete" → Test timed out in 5000ms
+```
 
-Nothing about what the test asserts changed — same three checks as before (dialog names the recipe, delete happens on confirm, navigation follows). It just controls when "settled" happens instead of trusting a real clock to land the assertion in the right window.
+The first two failed with the DOM still showing the loading state (`<p role="status">Loading recipes…</p>`) — the initial fetch simply hadn't resolved before `waitFor` gave up. The third is a test-level timeout, not a failed assertion. The decisive evidence was elsewhere in the same runs: unrelated, trivial tests were also absurdly slow — a plain `Button` test took 4.7 seconds, an `EmptyState` test 2.3 seconds, numbers with no relationship to what those tests actually do. That's a saturated machine, not an application race: six sessions were building, testing and running dev servers on the same machine at once.
 
-## `RecipeBox.test.tsx` — deferred, not fixed, and not "not applicable"
+**The response is tolerance, stated as tolerance, not a race fix wearing a bigger number:**
 
-The ticket's own known-affected list also names `RecipeBox`'s "no matches" test. **Not touched in this branch.** `frontend/src/features/recipes/RecipeBox.tsx` and its test file are inside DEV-5's unpushed TEST-153 commit (selection mode) — editing that test file now creates a merge conflict in a commit that's finished and waiting on a push approval outside this project. Per the coordinating session's explicit instruction: list it rather than fix it.
+- `frontend/src/test/setup.ts` raises React Testing Library's `asyncUtilTimeout` from its 1000ms default to 5000ms.
+- `frontend/vite.config.ts` raises Vitest's `testTimeout` from its 5000ms default to 15000ms.
+- Both carry a comment at the site explaining why, so a future reader doesn't mistake either for a race workaround.
 
-**To do once TEST-153 lands:** apply the same deferred-promise technique to whichever assertion in that test needs it, following the pattern now written up in `docs/testing.md`. This is listed here so it isn't lost, per AC4's own "fixed too, or listed if left."
+## Why the distinction matters enough to write down
 
-## Audit result (AC4)
-
-Beyond the two named tests, no other frontend test asserts a mid-flight mutation state without already holding a deferred promise. Checked: `RecipeForm.test.tsx`, `hooks.test.tsx` (both recipes and shopping-list), `ShoppingList.test.tsx`, `ShoppingListItemRow.test.tsx`, `http.test.ts`, and every `components/ui/*.test.tsx`. All either don't involve an async mutation at all, or (in `ShoppingList.test.tsx`'s case) only assert an eventually-settled outcome via `waitFor`, same as `RecipeBox`/`RecipeDetail` did — not the racy pattern.
-
-## Documentation (AC5)
-
-`docs/testing.md` gets a new "Don't race a real timer" section: what the trap actually is (asserting a mid-flight state against a real clock, not just "any test that awaits something"), why a plain `waitFor` isn't this trap, the fix, and a pointer at the shopping-list file as the worked example. Also corrected a stale test count in the same file's commands table (`npm test -w frontend` said 2 tests; it's 70 now) — small, in the same file already being edited for this ticket.
+If Problem B's timeouts had been "fixed" by applying Problem A's technique to unaffected tests, the result would have been churn without safety: the tests would still time out under real contention just the same (a deferred promise controls _order_, not wall-clock budget), and the added complexity would make the next investigation slower, not faster. `docs/testing.md` now spells out how to tell the two apart — whether unrelated trivial tests were also slow in the same run — so the next intermittent failure doesn't require re-deriving this.
 
 ## How it was verified
 
-- `RecipeDetail.test.tsx` alone, 5 consecutive runs: green, real exit codes.
-- Full frontend suite, 5 more consecutive runs after the fix: green, real exit codes (70 tests each time).
-- `npm run build`, `npm run lint`, `npx prettier --check` on the touched files (via the direct binary, not the proxied command): all exit 0.
-- No assertion weakened or dropped, no timeout raised — AC3 holds.
+- Audited every frontend test file for Problem A's construction (an `isPending`/mid-flight assertion without a held-open promise): only the already-fixed shopping-list file has it.
+- Reproduced neither Problem A nor Problem B in this session directly: 15 total consecutive runs across the investigation (5 full-suite, 5 of `RecipeBox.test.tsx` + `RecipeDetail.test.tsx` together, 5 more full-suite after the timeout change) — all green, real exit codes checked each time. Consistent with Problem B being load-dependent rather than absent.
+- `npm run build`, `npm run lint`, `npx prettier --check` on every touched file (direct binary, not the proxied command that has been known to mask a nonzero exit): all exit 0.
+- Confirmed `RecipeBox.test.tsx` and `RecipeDetail.test.tsx` are byte-identical to their pre-TEST-235 state — untouched, per the ticket's explicit requirement.
 
 ## Acceptance criteria coverage
 
-- **AC1** (racing tests become deterministic): done for `RecipeDetail`'s test; `RecipeBox`'s is blocked and listed, not silently dropped.
-- **AC2** (suite passes repeatedly): 5 consecutive full-suite runs post-fix, plus 5 more of the two originally-named files together, plus 5 of `RecipeDetail.test.tsx` alone during investigation — 15 total runs, all green.
-- **AC3** (no weakened assertions): confirmed above — same behavior asserted, ordering made explicit instead of timed.
-- **AC4** (audit, not just the two known ones): done — nothing else found; the one known instance not fixed is named, not hidden.
-- **AC5** (pattern documented): `docs/testing.md`, "Don't race a real timer".
+- **AC1** (Problem A stays fixed and documented): the shopping-list fix is unchanged; `docs/testing.md` names the trap and the technique.
+- **AC2** (audit recorded): stated above and in `docs/testing.md` — no other test has the construction.
+- **AC3** (Problem B made tolerable, justified in writing as tolerance not a race fix): `asyncUtilTimeout` and `testTimeout` both raised, each with a comment saying why, in `docs/testing.md` and at the change site.
+- **AC4** (the distinction written down): `docs/testing.md`, "Two ways a test can look flaky" — the unrelated-trivial-tests-were-also-slow check is the concrete thing to look for.
+- **The two named tests untouched**: confirmed byte-identical to their pre-ticket state.

@@ -57,13 +57,17 @@ Integration tests run against a **separate test database**, never the developmen
 - _Integration_ — Supertest against real Express routes and a real test PostgreSQL, proving route → service → repository → database actually wires up.
 - _API / contract_ — request and response shapes against the Zod boundary schemas, independent of business logic, so a breaking change to the API surface is caught.
 
-## Don't race a real timer
+## Two ways a test can look flaky
+
+A test that fails sometimes and passes other times is not automatically the same bug twice. This project hit two completely different causes with the same symptom — fixing one does nothing for the other, and telling them apart is the actual skill.
+
+### A racing real timer — a genuine bug, fix the test
 
 The mock layer's `api.ts` files simulate latency with `mockDelay()` (`frontend/src/lib/api/mockDelay.ts`) — real `setTimeout`, not a fake clock — specifically so loading states are genuinely exercised rather than resolving instantly. That's legitimate; don't remove it.
 
-The trap: a test that wants to assert something about the **transient window between a mutation starting and it settling** — "the UI updated optimistically, before the request resolved" — and does so by racing `waitFor` against that real timer is not flaky under load, it's **fundamentally non-deterministic**, full stop. Whether the assertion happens to land inside or outside that window depends on the timing between an unmocked wall-clock timer and the test framework's own scheduling. TEST-235 traced the very first version of this project's flaky-test hypothesis (suspected load contention) to this — load only ever changes how often the race is lost, not whether the race exists.
+The trap: a test that wants to assert something about the **transient window between a mutation starting and it settling** — "the UI updated optimistically, before the request resolved" — and does so by racing `waitFor` against that real timer is not flaky under load, it's **fundamentally non-deterministic**, full stop. It failed 100% of the time running that one file alone, at zero load. Load only changes how often the race is lost, not whether it exists.
 
-**A plain `await waitFor(() => expect(...))` for an eventually-settled state is not this trap** — `waitFor` polls until the assertion passes or its own timeout elapses, so it doesn't matter whether the underlying state change happens instantly or after `mockDelay()`'s ~150ms; a 1000ms default timeout has ample margin either way. The trap is specific to asserting the **mid-flight** state on purpose.
+**A plain `await waitFor(() => expect(...))` for an eventually-settled state is not this trap** — `waitFor` polls until the assertion passes or its own timeout elapses, so it doesn't matter whether the underlying state change happens instantly or after `mockDelay()`'s ~150ms. The trap is specific to asserting the **mid-flight** state on purpose.
 
 **The fix:** don't let a real timer decide the order. Replace the mocked API call with a manually controlled promise for the one test that needs to inspect the mid-flight state, so the test itself — not the clock — decides when "settled" happens:
 
@@ -85,7 +89,17 @@ spy.mockRestore();
 
 Worked example, both the success and the rejection path: `frontend/src/features/shopping-list/hooks.test.tsx` — see "checks an item off in the cache before the request resolves" and "rolls back to the real state when the request fails". Before-and-after reasoning: `docs/features/TEST-77-shopping-list-ui.md` under "Optimistic check-off".
 
-Before writing a test like this, check whether it's actually asserting a mid-flight state at all — most async UI tests aren't, and don't need this.
+**Audited (TEST-235): no test outside that file has this construction.** Before writing a new test like this, check whether it's actually asserting a mid-flight state at all — most async UI tests aren't, and don't need this.
+
+**Do not apply this fix to a test that hasn't been shown to have this problem.** `RecipeBox.test.tsx`'s "no matches" test and `RecipeDetail.test.tsx`'s "confirms before deleting" test were both suspected at one point — neither asserts a mid-flight state, so neither has this bug. Rewriting a test that can't be shown broken is worse than leaving it: it adds complexity and hides whatever the real cause of a future failure actually is.
+
+### A starved machine — not a bug, tolerate it
+
+Several sessions share one development machine, each running builds, test suites and dev servers at the same time. Under that contention, a fetch behind a 150ms timer — or an entire test function — can exceed a short timeout with nothing wrong in the code or the test.
+
+**How to tell it apart from a real race:** check whether _unrelated, trivial_ tests were also slow in the same run. A plain `Button` render test has been observed taking 4.7 seconds, an `EmptyState` test 2.3 seconds — numbers with no relationship to anything the test itself does. If trivial tests are also crawling, the machine was saturated; that failure says nothing about the test that happened to time out alongside them.
+
+**The tolerance, not a fix:** `asyncUtilTimeout` (`frontend/src/test/setup.ts`) and Vitest's `testTimeout` (`frontend/vite.config.ts`) are both raised from their defaults, with a comment at each site saying why. Raising a timeout to survive a starved CPU is legitimate; raising one because a test races its own mock is not — the fix for that is the technique above, never a bigger number.
 
 ## A required layer you cannot write yet
 
