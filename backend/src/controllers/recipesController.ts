@@ -11,12 +11,13 @@ const RECIPE_NOT_FOUND = {
 export function createRecipesController(pool: Pool) {
   return {
     async createRecipe(req: Request<object, unknown, RecipeInput>, res: Response): Promise<void> {
-      const recipe = await recipesService.createRecipe(pool, req.body);
+      // Mounted behind requireAuth, so req.user is always set here.
+      const recipe = await recipesService.createRecipe(pool, req.body, req.user!.id);
       res.status(201).json(recipe);
     },
 
-    async listRecipes(_req: Request, res: Response): Promise<void> {
-      const recipes = await recipesService.listRecipes(pool);
+    async listRecipes(req: Request, res: Response): Promise<void> {
+      const recipes = await recipesService.listRecipes(pool, req.user!.id);
       res.json(recipes);
     },
 

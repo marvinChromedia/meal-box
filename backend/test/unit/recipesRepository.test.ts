@@ -2,7 +2,7 @@ import type { Pool } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
 import { ZodError } from 'zod';
 
-import { getRecipeById, listRecipes } from '../../src/repositories/recipesRepository.js';
+import { getRecipeById, getRecipeOwnerId, listRecipes } from '../../src/repositories/recipesRepository.js';
 
 function fakePool(rows: unknown[]): Pool {
   return { query: vi.fn().mockResolvedValue({ rows }) } as unknown as Pool;
@@ -45,6 +45,7 @@ describe('recipesRepository row mapping', () => {
   it('maps every row returned for a list', async () => {
     const recipes = await listRecipes(
       fakePool([validRow, { ...validRow, id: '33333333-3333-3333-3333-333333333333' }]),
+      'user-1',
     );
     expect(recipes).toHaveLength(2);
   });
@@ -54,5 +55,24 @@ describe('recipesRepository row mapping', () => {
     await expect(getRecipeById(fakePool([malformedRow]), validRow.id)).rejects.toBeInstanceOf(
       ZodError,
     );
+  });
+});
+
+describe('recipesRepository ownership scoping', () => {
+  it('listRecipes filters by user_id, not just maps whatever comes back', async () => {
+    const pool = fakePool([validRow]);
+    await listRecipes(pool, 'user-42');
+
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('user_id'), ['user-42']);
+  });
+
+  it('getRecipeOwnerId returns the row\'s user_id', async () => {
+    const pool = fakePool([{ user_id: 'user-42' }]);
+    await expect(getRecipeOwnerId(pool, validRow.id)).resolves.toBe('user-42');
+  });
+
+  it('getRecipeOwnerId returns null when no recipe matches', async () => {
+    const pool = fakePool([]);
+    await expect(getRecipeOwnerId(pool, 'missing-id')).resolves.toBeNull();
   });
 });

@@ -6,15 +6,21 @@ import {
   createRecipe,
   deleteRecipe,
   getRecipeById,
+  getRecipeOwnerId,
   listRecipes,
   updateRecipe,
 } from '../../src/repositories/recipesRepository.js';
+import { createUser } from '../../src/repositories/usersRepository.js';
 import { createTestPool, truncateAll } from './testDb.js';
 
 const pool = createTestPool();
 
+let userId: string;
+
 beforeEach(async () => {
   await truncateAll(pool);
+  const user = await createUser(pool, { email: 'owner@example.com', passwordHash: 'not-a-real-hash' });
+  userId = user.id;
 });
 
 afterAll(async () => {
@@ -33,7 +39,7 @@ const sampleRecipe: RecipeInput = {
 
 describe('recipesRepository (integration)', () => {
   it('writes a recipe through the repository and reads back the same shape (AC3)', async () => {
-    const created = await createRecipe(pool, sampleRecipe);
+    const created = await createRecipe(pool, sampleRecipe, userId);
 
     expect(created.title).toBe('Tomato Soup');
     expect(created.isFavorite).toBe(false);
@@ -44,20 +50,39 @@ describe('recipesRepository (integration)', () => {
   });
 
   it('preserves ingredient order', async () => {
-    const created = await createRecipe(pool, sampleRecipe);
+    const created = await createRecipe(pool, sampleRecipe, userId);
     expect(created.ingredients.map((i) => i.name)).toEqual(['Tomato', 'Onion']);
   });
 
-  it('lists recipes that were written', async () => {
-    await createRecipe(pool, sampleRecipe);
-    await createRecipe(pool, { ...sampleRecipe, title: 'Pancakes' });
+  it('lists recipes that were written, for the owning user', async () => {
+    await createRecipe(pool, sampleRecipe, userId);
+    await createRecipe(pool, { ...sampleRecipe, title: 'Pancakes' }, userId);
 
-    const recipes = await listRecipes(pool);
+    const recipes = await listRecipes(pool, userId);
     expect(recipes.map((r) => r.title).sort()).toEqual(['Pancakes', 'Tomato Soup']);
   });
 
+  it("does not list another user's recipes", async () => {
+    await createRecipe(pool, sampleRecipe, userId);
+    const otherUser = await createUser(pool, { email: 'someone-else@example.com', passwordHash: 'not-a-real-hash' });
+
+    const recipes = await listRecipes(pool, otherUser.id);
+    expect(recipes).toEqual([]);
+  });
+
+  it('records the creating user as the owner', async () => {
+    const created = await createRecipe(pool, sampleRecipe, userId);
+    await expect(getRecipeOwnerId(pool, created.id)).resolves.toBe(userId);
+  });
+
+  it('getRecipeOwnerId returns null for an id that does not exist', async () => {
+    await expect(
+      getRecipeOwnerId(pool, '11111111-1111-1111-1111-111111111111'),
+    ).resolves.toBeNull();
+  });
+
   it('cascades: deleting a recipe removes its ingredient rows (AC2)', async () => {
-    const created = await createRecipe(pool, sampleRecipe);
+    const created = await createRecipe(pool, sampleRecipe, userId);
 
     await deleteRecipe(pool, created.id);
 
@@ -69,7 +94,7 @@ describe('recipesRepository (integration)', () => {
   });
 
   it('updates a recipe, replacing the ingredient set with no orphans left behind (AC3)', async () => {
-    const created = await createRecipe(pool, sampleRecipe);
+    const created = await createRecipe(pool, sampleRecipe, userId);
 
     const updated = await updateRecipe(pool, created.id, {
       title: 'Tomato Soup (updated)',
@@ -94,7 +119,7 @@ describe('recipesRepository (integration)', () => {
   });
 
   it('survives a fresh connection to the database (AC4)', async () => {
-    const created = await createRecipe(pool, sampleRecipe);
+    const created = await createRecipe(pool, sampleRecipe, userId);
 
     const freshPool = new Pool({ connectionString: process.env.TEST_DATABASE_URL });
     try {

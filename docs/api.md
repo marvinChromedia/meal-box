@@ -41,9 +41,11 @@ Session is an `httpOnly`, `Secure` (in production), `SameSite=Lax` cookie — no
 token. Every `/api/recipes` and `/api/shopping-list` route requires this session
 (`requireAuth`, mounted once per prefix in `app.ts`); a route addressed by a specific
 record id additionally needs `requireOwner` applied to it (see Ownership below and
-[`TEST-159-authentication.md`](./features/TEST-159-authentication.md)) — **not yet done
-for the existing `recipes` and `shopping-list` by-id routes**, which is a named, open gap
-rather than an oversight.
+[`TEST-159-authentication.md`](./features/TEST-159-authentication.md)). **Done for
+`/api/recipes`** (TEST-253: `GET`/`PUT`/`DELETE /api/recipes/:id` all apply
+`requireOwner`; `POST`/`GET /api/recipes` scope by `user_id` directly) — **still an
+open gap for `/api/shopping-list`**, not yet done, still a named gap rather than an
+oversight.
 
 ### `/api/shopping-list`
 

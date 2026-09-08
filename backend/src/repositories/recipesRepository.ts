@@ -58,16 +58,14 @@ const RECIPE_SELECT = `
   LEFT JOIN recipe_ingredients ri ON ri.recipe_id = r.id
 `;
 
-export async function createRecipe(pool: Pool, input: RecipeInput): Promise<Recipe> {
+export async function createRecipe(pool: Pool, input: RecipeInput, userId: string): Promise<Recipe> {
   const id = randomUUID();
 
   const recipe = await withTransaction(pool, async (client) => {
-    await client.query(`INSERT INTO recipes (id, title, steps, tags) VALUES ($1, $2, $3, $4)`, [
-      id,
-      input.title,
-      input.steps,
-      input.tags,
-    ]);
+    await client.query(
+      `INSERT INTO recipes (id, title, steps, tags, user_id) VALUES ($1, $2, $3, $4, $5)`,
+      [id, input.title, input.steps, input.tags, userId],
+    );
 
     await Promise.all(
       input.ingredients.map((ingredient, position) =>
@@ -95,8 +93,19 @@ export async function getRecipeById(db: Queryable, id: string): Promise<Recipe |
   return mapRowToRecipe(recipeRowSchema.parse(row));
 }
 
-export async function listRecipes(db: Queryable): Promise<Recipe[]> {
-  const result = await db.query(`${RECIPE_SELECT} GROUP BY r.id ORDER BY r.created_at`);
+// Used only to wire the requireOwner middleware into the by-id routes — kept
+// separate from getRecipeById so user_id never has to become part of the
+// public Recipe shape returned to clients.
+export async function getRecipeOwnerId(db: Queryable, id: string): Promise<string | null> {
+  const result = await db.query('SELECT user_id FROM recipes WHERE id = $1', [id]);
+  const [row] = result.rows as { user_id: string | null }[];
+  return row?.user_id ?? null;
+}
+
+export async function listRecipes(db: Queryable, userId: string): Promise<Recipe[]> {
+  const result = await db.query(`${RECIPE_SELECT} WHERE r.user_id = $1 GROUP BY r.id ORDER BY r.created_at`, [
+    userId,
+  ]);
   return result.rows.map((row) => mapRowToRecipe(recipeRowSchema.parse(row)));
 }
 

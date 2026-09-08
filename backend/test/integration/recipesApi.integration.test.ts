@@ -110,7 +110,11 @@ describe('PUT /api/recipes/:id (AC3)', () => {
       .send(sampleInput);
 
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: { message: expect.any(String), code: 'RECIPE_NOT_FOUND' } });
+    // requireOwner (TEST-253) intercepts this before the controller runs — a
+    // missing id and someone else's id are deliberately indistinguishable,
+    // so both come back as its generic NOT_FOUND, not the controller's own
+    // RECIPE_NOT_FOUND.
+    expect(res.body).toEqual({ error: { message: expect.any(String), code: 'NOT_FOUND' } });
   });
 });
 
@@ -149,5 +153,69 @@ describe('AC6: malformed and unknown ids', () => {
   it('returns 404 for a well-formed but unknown id', async () => {
     const res = await agent.get('/api/recipes/11111111-1111-1111-1111-111111111111');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('TEST-253: recipes are scoped to the authenticated account', () => {
+  async function registerAndLogin(email: string): Promise<ReturnType<typeof request.agent>> {
+    const otherAgent = request.agent(app);
+    await otherAgent.post('/api/auth/register').send({ email, password: 'password123' });
+    await otherAgent.post('/api/auth/login').send({ email, password: 'password123' });
+    return otherAgent;
+  }
+
+  it("does not list another account's recipes (AC1)", async () => {
+    await agent.post('/api/recipes').send(sampleInput);
+
+    const otherAgent = await registerAndLogin('someone-else@example.com');
+    const listRes = await otherAgent.get('/api/recipes');
+
+    expect(listRes.status).toBe(200);
+    expect(listRes.body).toEqual([]);
+  });
+
+  it("returns 404, not the record, reading another account's recipe by id (AC2)", async () => {
+    const created = await agent.post('/api/recipes').send(sampleInput);
+
+    const otherAgent = await registerAndLogin('someone-else@example.com');
+    const res = await otherAgent.get(`/api/recipes/${created.body.id}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: { message: expect.any(String), code: 'NOT_FOUND' } });
+  });
+
+  it("returns 404 updating another account's recipe by id, and does not change it (AC2)", async () => {
+    const created = await agent.post('/api/recipes').send(sampleInput);
+
+    const otherAgent = await registerAndLogin('someone-else@example.com');
+    const updateRes = await otherAgent
+      .put(`/api/recipes/${created.body.id}`)
+      .send({ ...sampleInput, title: 'Hijacked' });
+
+    expect(updateRes.status).toBe(404);
+
+    const reread = await agent.get(`/api/recipes/${created.body.id}`);
+    expect(reread.body.title).toBe('Tomato Soup');
+  });
+
+  it("returns 404 deleting another account's recipe by id, and does not delete it (AC2)", async () => {
+    const created = await agent.post('/api/recipes').send(sampleInput);
+
+    const otherAgent = await registerAndLogin('someone-else@example.com');
+    const deleteRes = await otherAgent.delete(`/api/recipes/${created.body.id}`);
+
+    expect(deleteRes.status).toBe(404);
+
+    const reread = await agent.get(`/api/recipes/${created.body.id}`);
+    expect(reread.status).toBe(200);
+  });
+
+  it('a created recipe is owned by the account that created it (AC3)', async () => {
+    const created = await agent.post('/api/recipes').send(sampleInput);
+
+    const { rows } = await pool.query('SELECT user_id FROM recipes WHERE id = $1', [created.body.id]);
+    const meRes = await agent.get('/api/auth/me');
+
+    expect(rows[0]?.user_id).toBe(meRes.body.user.id);
   });
 });

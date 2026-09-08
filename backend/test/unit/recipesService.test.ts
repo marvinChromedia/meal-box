@@ -31,21 +31,21 @@ beforeEach(() => {
 });
 
 describe('recipesService', () => {
-  it('createRecipe delegates to the repository and returns its result', async () => {
+  it('createRecipe delegates to the repository with the owning userId, and returns its result', async () => {
     vi.mocked(recipesRepository.createRecipe).mockResolvedValue(sampleRecipe);
 
-    const result = await recipesService.createRecipe(pool, sampleInput);
+    const result = await recipesService.createRecipe(pool, sampleInput, 'user-1');
 
-    expect(recipesRepository.createRecipe).toHaveBeenCalledWith(pool, sampleInput);
+    expect(recipesRepository.createRecipe).toHaveBeenCalledWith(pool, sampleInput, 'user-1');
     expect(result).toEqual(sampleRecipe);
   });
 
-  it('listRecipes delegates to the repository', async () => {
+  it('listRecipes delegates to the repository, scoped to the given userId', async () => {
     vi.mocked(recipesRepository.listRecipes).mockResolvedValue([sampleRecipe]);
 
-    const result = await recipesService.listRecipes(pool);
+    const result = await recipesService.listRecipes(pool, 'user-1');
 
-    expect(recipesRepository.listRecipes).toHaveBeenCalledWith(pool);
+    expect(recipesRepository.listRecipes).toHaveBeenCalledWith(pool, 'user-1');
     expect(result).toEqual([sampleRecipe]);
   });
 
@@ -82,5 +82,14 @@ describe('recipesService', () => {
     const result = await recipesService.deleteRecipe(pool, sampleRecipe.id);
 
     expect(result).toBe(true);
+  });
+
+  it('getRecipeOwnerId delegates to the repository', async () => {
+    vi.mocked(recipesRepository.getRecipeOwnerId).mockResolvedValue('user-1');
+
+    const result = await recipesService.getRecipeOwnerId(pool, sampleRecipe.id);
+
+    expect(recipesRepository.getRecipeOwnerId).toHaveBeenCalledWith(pool, sampleRecipe.id);
+    expect(result).toBe('user-1');
   });
 });
