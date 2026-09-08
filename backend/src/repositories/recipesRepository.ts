@@ -1,0 +1,105 @@
+import { randomUUID } from 'node:crypto';
+
+import type { Recipe, RecipeInput } from '@recipe-box/shared';
+import type { Pool } from 'pg';
+import { z } from 'zod';
+
+import type { Queryable } from '../db/queryable.js';
+import { withTransaction } from '../db/withTransaction.js';
+
+const ingredientRowSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  quantity: z.number(),
+  unit: z.string(),
+});
+
+const recipeRowSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  steps: z.array(z.string()),
+  tags: z.array(z.string()),
+  is_favorite: z.boolean(),
+  created_at: z.date(),
+  updated_at: z.date(),
+  ingredients: z.array(ingredientRowSchema),
+});
+
+function mapRowToRecipe(row: z.infer<typeof recipeRowSchema>): Recipe {
+  return {
+    id: row.id,
+    title: row.title,
+    ingredients: row.ingredients,
+    steps: row.steps,
+    tags: row.tags,
+    isFavorite: row.is_favorite,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
+const RECIPE_SELECT = `
+  SELECT
+    r.id,
+    r.title,
+    r.steps,
+    r.tags,
+    r.is_favorite,
+    r.created_at,
+    r.updated_at,
+    COALESCE(
+      json_agg(
+        json_build_object('id', ri.id, 'name', ri.name, 'quantity', ri.quantity, 'unit', ri.unit)
+        ORDER BY ri.position
+      ) FILTER (WHERE ri.id IS NOT NULL),
+      '[]'
+    ) AS ingredients
+  FROM recipes r
+  LEFT JOIN recipe_ingredients ri ON ri.recipe_id = r.id
+`;
+
+export async function createRecipe(pool: Pool, input: RecipeInput): Promise<Recipe> {
+  const id = randomUUID();
+
+  const recipe = await withTransaction(pool, async (client) => {
+    await client.query(`INSERT INTO recipes (id, title, steps, tags) VALUES ($1, $2, $3, $4)`, [
+      id,
+      input.title,
+      input.steps,
+      input.tags,
+    ]);
+
+    await Promise.all(
+      input.ingredients.map((ingredient, position) =>
+        client.query(
+          `INSERT INTO recipe_ingredients (id, recipe_id, name, quantity, unit, position)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [randomUUID(), id, ingredient.name, ingredient.quantity, ingredient.unit, position],
+        ),
+      ),
+    );
+
+    return getRecipeById(client, id);
+  });
+
+  if (!recipe) {
+    throw new Error(`recipe ${id} was not found immediately after being created`);
+  }
+  return recipe;
+}
+
+export async function getRecipeById(db: Queryable, id: string): Promise<Recipe | null> {
+  const result = await db.query(`${RECIPE_SELECT} WHERE r.id = $1 GROUP BY r.id`, [id]);
+  const [row] = result.rows;
+  if (!row) return null;
+  return mapRowToRecipe(recipeRowSchema.parse(row));
+}
+
+export async function listRecipes(db: Queryable): Promise<Recipe[]> {
+  const result = await db.query(`${RECIPE_SELECT} GROUP BY r.id ORDER BY r.created_at`);
+  return result.rows.map((row) => mapRowToRecipe(recipeRowSchema.parse(row)));
+}
+
+export async function deleteRecipe(db: Queryable, id: string): Promise<void> {
+  await db.query('DELETE FROM recipes WHERE id = $1', [id]);
+}
