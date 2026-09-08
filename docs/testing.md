@@ -57,6 +57,29 @@ Integration tests run against a **separate test database**, never the developmen
 - _Integration_ — Supertest against real Express routes and a real test PostgreSQL, proving route → service → repository → database actually wires up.
 - _API / contract_ — request and response shapes against the Zod boundary schemas, independent of business logic, so a breaking change to the API surface is caught.
 
+## A required layer you cannot write yet
+
+Three cases, not two, and they are not interchangeable:
+
+1. **The layer applies and you wrote it.** Normal.
+2. **The layer does not apply** — a data layer with no screen, a frontend change touching no backend. Say so in the summary and say why. An unexplained absence is indistinguishable from a skip.
+3. **The layer applies but is blocked outside your ticket** — most obviously that no end-to-end runner is installed. This is the only real exception.
+
+A case-3 deferral is allowed only when **all four** hold:
+
+- The blocker is genuinely outside your ticket, and fixing it in your branch would be worse — several sessions each installing their own runner, for instance.
+- **A ticket exists that carries the missing test**, with an owner, listing your ticket in its debt.
+- Your summary names that ticket.
+- The coordinating session agreed to it.
+
+Then the ticket may go to Done and the code may merge.
+
+**Never describe a deferred layer as "not applicable".** It applies; it cannot be written yet. Blurring those is how a missing test becomes invisible — name the ticket number instead. Wanting a fourth category means you are about to skip a test; ask the coordinating session.
+
+### Why the exit-code rule exists
+
+A broken production build sat in `main` from the initial scaffold until TEST-217, while the dev server and both test suites ran green. It survived because a session read a filtered "no errors" summary and reported it in good faith. Every claim about a test or build result is only as good as the exit status behind it.
+
 ## Rules
 
 Before finishing: run the relevant tests, read the failures, fix what your change caused, re-run, confirm the behaviour.

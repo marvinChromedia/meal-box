@@ -43,6 +43,12 @@ Each layer has one job. Controllers parse, validate and shape responses. Service
 
 Each resource (`frontend/src/features/recipes/`, `frontend/src/features/shopping-list/`) has an `api.ts` (a typed interface with a real `apiRequest`-backed implementation and an in-memory mock, selected by `VITE_API_MODE`) and a `hooks.ts` (the query/mutation hooks screens actually import — `useRecipes`, `useCreateRecipe`, `useShoppingList`, ...). See [`docs/features/TEST-155-api-client.md`](./features/TEST-155-api-client.md) for the full convention writeup.
 
+## This page describes what exists, so it goes stale
+
+Most pages here describe rules, which stay true. This one and [`api.md`](./api.md) describe the current state of the code, which changes every time a ticket lands. **A change that adds or alters an endpoint, a layer or a test script updates them in the same branch.**
+
+This is not hypothetical: within an hour of these pages first being written, a merged ticket made three of them wrong — one claimed only `/health` existed, another claimed there was no controller layer, a third did not know about a new test script. A new session reading a stale inventory builds against a fiction.
+
 ## What exists today
 
 - `backend/src/app.ts`, `index.ts` — Express app, with the listener separate so tests can import the app.

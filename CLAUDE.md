@@ -1,266 +1,143 @@
 # CLAUDE.md — AI Development Workflow
 
-Instructions every Claude Code session working in this repository must follow.
+Rules every Claude Code session in this repository follows. Detail and reasoning live in [`docs/`](./docs), linked per section — read the linked page before working in that area.
 
-This file is the rules. Reference detail lives in [`docs/`](./docs) and is linked from each section — read the linked file before working in that area.
+MealBox: a personal recipe box with shopping-list generation. Beacon story [`TEST-71`](https://beacon.chro.media/browse/TEST-71); its sub-tasks are the unit of work.
 
-MealBox is a personal recipe box with shopping-list generation, tracked as Beacon story [`TEST-71`](https://beacon.chro.media/browse/TEST-71). Sub-tasks under that story are the unit of work.
+Several dev sessions run in parallel, each in its own git worktree. One session coordinates and is titled "Project Manager" (the PM). A dev session's loop: **understand → plan → implement → test → document → commit → Done → merge**.
 
-## 1. The workflow
+## 1. PM session
 
-```text
-User
-  ↓
-PM session          receives the request, finds the ticket, delegates
-  ↓
-Dev session
-  ↓
-Understand          read the ticket, inspect the code, find what to reuse
-  ↓
-Plan               a concise plan before any edit
-  ↓
-Implement          smallest change that fully solves the ticket
-  ↓
-Test               real tests, actually run
-  ↓
-Document           ticket summary + feature doc
-  ↓
-Commit             one commit, no co-author
-  ↓
-Done               ticket → Done
-  ↓
-Merge to main
-```
+1. Takes the user's request; identifies the ticket. **A ticket with no acceptance criteria is not startable** — spec it first.
+2. Determines scope and dependencies; delegates one ticket at a time per session.
+3. Coordinates overlapping work; answers dev questions, and puts decisions the repository cannot answer to the user.
+4. Owns `shared/src/types.ts`. All contract changes go through the PM.
+5. Audits closed tickets against their acceptance criteria and reopens anything short of the bar.
 
-Several dev sessions run in parallel, each in its own git worktree. One session coordinates and is titled "Project Manager".
+The PM does not implement work a dev session should do.
 
-## 2. PM session
-
-The PM session is the coordinator between the user and the dev sessions. It:
-
-1. Receives the user's request and understands the requirement.
-2. Identifies the ticket, or has one written before work starts — **a ticket with no acceptance criteria is not startable.**
-3. Determines scope and what the work depends on.
-4. Delegates implementation to a dev session, one ticket at a time per session.
-5. Monitors progress and coordinates when two sessions' work overlaps.
-6. Answers dev sessions' questions, and **puts decisions to the user** when the answer is not in the repository or the ticket.
-7. Owns `shared/src/types.ts` — the frontend/backend contract seam. Contract changes go through the PM session so two branches cannot diverge.
-8. Reviews completed work against the ticket's acceptance criteria and reopens anything short of the bar.
-
-The PM session does not implement work a dev session should do.
-
-## 3. Dev session — before coding
+## 2. Before coding
 
 > **Inspect first. Plan second. Implement third.**
 
-Before editing anything:
+Read the whole ticket. Inspect the existing implementation. Search for what you can reuse (§5). Identify affected components, endpoints, migrations and tests, and what could regress. Run `git status`, check your branch. Write a concise plan.
 
-1. Read the whole ticket, not just its title.
-2. Inspect the existing implementation of what you are about to change.
-3. Search for functionality you can reuse — see §7.
-4. Identify affected components, services, endpoints, migrations and tests.
-5. Identify what could regress.
-6. Run `git status` and check which branch you are on.
-7. Write a concise plan.
+Do not start from the ticket description alone.
 
-Do not start coding from the ticket description alone.
+## 3. Ticket lifecycle
 
-## 4. Ticket lifecycle
+Three statuses only: **Todo → In Progress → Done**. Do not invent others. Read and write tickets through the `beacon-production` MCP tools, never a browser; if those tools are missing from your session, **say so immediately** instead of working around it.
 
-Beacon's `TEST` project uses three statuses for this flow: **Todo → In Progress → Done**. Do not invent others.
+**In Progress** — set it as soon as you begin, not when nearly finished, with the start comment (§10).
 
-**Todo** — not started. Read the ticket and plan before touching code.
+**Done** — set it yourself when the checklist in §12 is fully met. Then merge (§9) and add the merge SHA to the summary comment.
 
-**In Progress** — set this **as soon as you begin**, not when you are nearly finished. Post a start comment at the same time: which session, the branch name, and what the ticket was waiting on.
+## 4. Questions
 
-**Done** — set it yourself when all of these are true:
+If a requirement is ambiguous and the choice changes behaviour or what a user sees, **do not guess.** Check the repository first — code, patterns, ticket, tests, `docs/`. If it does not answer, send the question to the PM with enough context; the PM puts it to the user. Record the confirmed decision in the summary.
 
-- Implementation complete.
-- Required tests added or updated, and passing (§9) — or a required layer formally deferred, which §9 defines narrowly.
-- `npm run build` passes.
-- Final diff reviewed; no unrelated changes; no secrets.
-- Ticket summary posted (§13).
-- Single commit created, no co-author (§12).
-- Every ticket this one depends on is already merged.
+Do not ask what you could find by looking. Do not invent scope to fill a gap in a ticket.
 
-Then merge to `main` (§12). Add the merge commit SHA to the summary comment afterwards.
+## 5. Verify, don't assume
 
-The PM session audits closed tickets and reopens any that fall short. Closing your own ticket is trusted, not unchecked.
+Never assume a file exists, an endpoint behaves a certain way, a component is unused, a column has a given type, a test covers a case, an environment variable is set, or that another session's changes are safe to modify.
 
-## 5. Questions
+**Verify by exit code, not printed output** — a command proxy outside this repository filters output and has printed `TypeScript: No errors found` over a run that exited 1. Redirect to a file and grep, or check `echo $?`. Never report a test or build result whose exit status you did not see.
 
-If a requirement is ambiguous and the choice would change behaviour or what a user sees, **do not guess**.
+## 6. Reuse before creating
 
-1. Work out the specific question.
-2. Check whether the repository already answers it — existing code, existing patterns, the ticket, the tests, `docs/`.
-3. If it does not: send the question to the PM session with enough context to answer it.
-4. The PM session puts it to the user, using an interactive prompt where one is available.
-5. Continue with the confirmed decision, and record it in the ticket summary.
-
-Do not ask what you could have found by looking. Do not invent scope to fill a gap in a ticket.
-
-## 6. Verify, don't assume
-
-Mandatory. Never assume a file exists, an endpoint behaves a certain way, a component is unused, a column has a given type, a test covers a case, an environment variable is set, or that another session's changes are safe to modify. Check.
-
-**Verify by exit code, not by printed output.** A command proxy configured outside this repository filters command output, and has been observed printing `TypeScript: No errors found` over a run that exited 1. Redirect to a file and grep it, or check `echo $?`. Never report a test or build result you did not see the exit status of.
-
-## 7. Reuse before creating
-
-Before adding a component, hook, service, utility, endpoint, abstraction or dependency, search for one that already does the job. See [`docs/architecture.md`](./docs/architecture.md) for what exists and where.
+Before adding a component, hook, service, utility, endpoint, abstraction or dependency, search for one that already does the job — see [`docs/architecture.md`](./docs/architecture.md).
 
 - Types come from `@recipe-box/shared`. Never redefine those shapes locally.
-- UI comes from `frontend/src/components/ui/` — see [`docs/frontend.md`](./docs/frontend.md) and [`docs/design-system.md`](./docs/design-system.md).
-- SQL lives only in `backend/src/repositories/` — see [`docs/backend.md`](./docs/backend.md).
+- UI comes from `frontend/src/components/ui/` — [`docs/frontend.md`](./docs/frontend.md), [`docs/design-system.md`](./docs/design-system.md).
+- SQL lives only in `backend/src/repositories/` — [`docs/backend.md`](./docs/backend.md).
 
-Make the smallest change that fully solves the ticket. Do not rewrite unrelated code, and do not add abstractions, patterns or dependencies the ticket does not need.
+Make the smallest change that fully solves the ticket. Do not rewrite unrelated code or add abstractions the ticket does not need. Fixing a bug means finding the root cause and adding a regression test, not patching the symptom. Do not change existing behaviour unintentionally.
 
-When fixing a bug: understand it, find the root cause, fix that, add a regression test, verify. Do not patch the symptom.
+## 7. Testing
 
-Do not change existing behaviour unintentionally. If the ticket requires a behaviour change, make it deliberate and test it.
+Commands, layers, the test database and current gaps: [`docs/testing.md`](./docs/testing.md). Read it before claiming anything about tests.
 
-## 8. Code quality
+- **Frontend behaviour changed** → an end-to-end test covering the flow, its edge cases and the loading/error/empty states, plus component tests.
+- **Backend behaviour changed** → unit tests, integration tests where the wiring matters, contract tests at a Zod boundary, and a regression test for a bug.
 
-Before finishing, review your own diff for leftover debugging statements, temporary code, duplicated logic, unused imports, weak naming, missing error handling, security problems and unintended side effects.
+Before finishing: run the tests, read the failures, fix what your change caused, re-run, confirm the behaviour.
 
-`npm run lint` and `npm run format` are the project's checks, and TypeScript runs `strict: true` in both workspaces. **Do not disable a check, loosen `strict`, or add `any` to make a task pass.**
+A required layer you genuinely cannot write yet may be **deferred** — narrowly, and only under the four conditions in [`docs/testing.md`](./docs/testing.md), which include a ticket that carries the missing test. Name that ticket in your summary. **Never call a deferred layer "not applicable"**; it applies and cannot be written yet, which is a different claim.
 
-## 9. Testing
+Never remove a test because it fails, disable validation to make one pass, weaken an assertion without reason, or claim tests passed without running them.
 
-Mandatory. Commands, layers and the current gaps are in [`docs/testing.md`](./docs/testing.md) — read it before claiming anything about tests.
+## 8. Code quality and security
 
-- **Frontend behaviour changed** → add or update an end-to-end test covering the user flow, its edge cases, and loading/error/empty states. **No E2E framework is installed in this repository yet**, so raise this with the PM session rather than skipping it silently or scaffolding your own runner.
-- **Backend behaviour changed** → add or update unit tests, and integration tests where the wiring matters. Add a regression test for a bug.
+Review your own diff for debugging leftovers, temporary code, duplicated logic, unused imports, weak naming, missing error handling and unintended side effects. `npm run lint` and `npm run format` are the checks; TypeScript is `strict: true` in both workspaces. **Do not disable a check, loosen `strict`, or add `any` to make a task pass.**
 
-Before finishing: run the relevant tests, read the failures, fix what your change caused, re-run, and confirm the behaviour.
+Never commit or log secrets, passwords, keys or tokens. Never bypass authentication, authorization or validation, and never trust client-side authorization alone. `.env` is gitignored; `.env.example` carries variable names and no values. All SQL parameterized. Every mutating endpoint validates its input. CORS locked to the known frontend origin.
 
-Never remove a test because it fails, disable validation to make one pass, weaken an assertion without reason, skip a required test without saying so in the summary, or claim tests passed without running them. Code compiling is not a task being complete.
+When a change touches authentication, authorization, permissions, user access or sensitive data, review the diff explicitly for security consequences and say what you checked in the summary.
 
-### A required layer you cannot write yet
+## 9. Parallel work and git
 
-There are three cases, not two, and they are not interchangeable:
+Worktrees, branch naming and the merge route that actually works here: [`docs/git-workflow.md`](./docs/git-workflow.md).
 
-1. **The layer applies and you wrote it.** Normal.
-2. **The layer does not apply** — a data layer with no screen, a frontend change touching no backend. Say so in the summary and say why. An unexplained absence is indistinguishable from a skip.
-3. **The layer applies but is blocked by something outside your ticket** — most obviously that no end-to-end runner is installed. This is a real exception, and it is the only one.
+1. Work only within your ticket's scope; avoid touching unrelated files.
+2. Work in your own worktree — never two sessions in one checkout. **Creating and working in it needs nobody's approval.**
+3. Understand uncommitted changes before touching the files they are in. Never discard, overwrite or clean up another session's work.
+4. Never `git reset --hard`, never force-push, never rewrite another session's commits.
+5. Two sessions changed the same code? Read both, understand why each exists, and ask the PM to coordinate — do not just pick one.
 
-A deferral in case 3 is allowed only when **all** of these hold:
+Before committing: `git status`, read the whole diff, confirm only intended files changed, run the tests and the build, check for secrets.
 
-- The blocker is genuinely outside your ticket's scope, and fixing it inside your branch would be worse — several sessions each installing their own runner, for instance.
-- **A ticket exists that carries the missing test**, with an owner, and it lists your ticket in its debt.
-- Your summary names that ticket and says the test is deferred to it.
-- The coordinating session agreed to the deferral.
+**One commit per ticket, and it includes the documentation** — code, tests, feature doc and any reference-page updates, squashed into one. No separate `docs:` commit trailing an implementation. Conventional Commits subject with the ticket key (`feat(recipes): add recipe CRUD API (TEST-72)`); body a short bullet list a non-engineer can read. **No `Co-Authored-By`**, no tool attribution, no "generated with" footer.
 
-Then the ticket may go to Done, and the code may merge.
+The PM batches its own non-ticket documentation changes into one commit per change of intent.
 
-**Do not describe a deferred layer as "not applicable".** It applies; it cannot be written yet. Those are different claims, and blurring them is exactly how a missing test becomes invisible. Name the ticket number instead.
+## 10. Ticket comments
 
-If you find yourself wanting a fourth category, you are about to skip a test. Ask the coordinating session instead.
+**Two comments per ticket, no more. Both short, both written for a non-engineer.** Technical detail belongs in the feature doc.
 
-## 10. Security
+**Start comment** — session, branch, what it was waiting on. Three lines.
 
-Never commit secrets, passwords, API keys or tokens; never log credentials; never bypass authentication, authorization or validation; never trust client-side authorization alone; never hardcode environment-specific secrets. `.env` is gitignored — `.env.example` carries the variable names and no values.
+**Summary comment**, posted before merging: what a person can now do or what stopped being broken, anything they will notice, anything needed to run it. Then the merge SHA on that same comment once it lands.
 
-All SQL is parameterized. Every mutating endpoint validates its input before touching the database. CORS is locked to the known frontend origin.
+Keep out of comments: file paths, function and column names, test counts, framework names, config flags, code snippets, test-layer breakdowns, acceptance-criterion mapping.
 
-When your change touches authentication, authorization, permissions, user access or sensitive data, review the diff explicitly for security consequences and say what you checked in the ticket summary.
+**That detail goes in `docs/features/<TICKET-KEY>-<slug>.md`**, in the same branch — every ticket that changes behaviour gets one. Write it for the next developer: what changed and why, which tests cover it, decisions later tickets depend on, trade-offs you accepted.
 
-## 11. Parallel development
+A decision affecting another ticket goes in the feature doc **and** to the PM, which is what carries it to the session that needs it.
 
-Several sessions work this repository at once. These rules exist to stop one session destroying another's work.
+The PM's verification is appended to the summary comment, not added as a third.
 
-1. Work only within your assigned ticket's scope.
-2. `git status` and check your branch before starting.
-3. Work in your own worktree — never two sessions in one checkout. See [`docs/git-workflow.md`](./docs/git-workflow.md). **Creating and working in that worktree needs nobody's approval** — branch, test, build, commit, rebase and push your own branch without asking.
-4. Understand uncommitted changes before you touch the files they are in.
-5. Never discard, overwrite or clean up another session's uncommitted work.
-6. Never `git reset --hard`, never force-push, never rewrite another task's commits.
-7. Avoid touching files outside your ticket.
-8. Tell the PM session about conflicts instead of resolving them unilaterally.
+## 11. Reference
 
-If two sessions changed the same code, do not simply pick one. Read both, understand why each exists, and ask the PM session to coordinate.
+[`docs/api.md`](./docs/api.md) and [`docs/architecture.md`](./docs/architecture.md) describe **what currently exists**, so a change that adds or alters an endpoint, a layer or a test script **updates them in the same branch**.
 
-## 12. Git
-
-Full detail, including the merge route that actually works here, is in [`docs/git-workflow.md`](./docs/git-workflow.md).
-
-Before committing: `git status`, read the whole diff, confirm only intended files changed, run the tests and the build, check for secrets, confirm everything belongs to your ticket.
-
-**One commit per ticket, and it includes the documentation.** However many steps the work took, the branch arrives as a single commit containing everything the ticket produced: the code, its tests, the feature doc, and any reference-page updates it triggered. Squash before the branch is shared.
-
-There is no separate `docs:` commit trailing an implementation. A change and the explanation of that change are one unit of work — split them and the history stops telling you why anything happened, and a `git revert` takes back the code while leaving the documentation describing it.
-
-The commit must have **no `Co-Authored-By` trailer**, no tool attribution and no "generated with" footer. Subject follows Conventional Commits with the ticket key — `feat(recipes): add recipe CRUD API (TEST-72)`. The body is a short bullet list a non-engineer can read: what the change does for the user, not which files moved.
-
-This applies to the coordinating session too. Rule and documentation changes that are not tied to a ticket get **batched into one commit per change of intent**, not dribbled out one per edit — a stream of small `docs:` commits is the same failure in a different costume.
-
-Do not rewrite or squash another session's commits. Do not force-push.
-
-## 13. Ticket comments
-
-A ticket carries two comments and no more. **Both are short and written for a non-engineer** — a PM or stakeholder reading the ticket should understand what happened without asking a developer. The technical detail belongs in the feature doc, not the ticket.
-
-**Read and write tickets through the `beacon-production` MCP tools only.** Never through a browser. Scraping a ticket page gives you parsed HTML you cannot fully trust, and clicking through the interface to change a status or post a comment gives you no structured confirmation that the right field on the right ticket changed. The MCP returns the ticket as data and tells you what it wrote.
-
-If those tools are not available in your session, **say so immediately** rather than working around it. A browser workaround looks like it is functioning while quietly producing a worse audit trail, and the fix — enabling the connector — is one the user makes in a moment. One session has already spent a stretch of this project guessing at requirements it could not read; that must not happen again silently.
-
-**The start comment**, posted when you move the ticket to In Progress. Three lines: who is working it, the branch, and what it was waiting on.
-
-**The summary comment**, posted when the work is done and **before** merging. Keep it to a short paragraph, or a handful of plain bullets:
-
-- What a person can now do that they could not before, or what stopped being broken.
-- Anything they will notice about how it behaves.
-- Anything that needs doing to run it — a new setting, a database change.
-
-Then the merge commit SHA, added to that same comment once it lands.
-
-**What does not go in a comment:** file paths, function and column names, test counts, framework names, config flags, code snippets, layer-by-layer test breakdowns, acceptance-criterion mapping. None of it means anything to the audience the comment is for.
-
-**Where that detail goes instead:** `docs/features/<TICKET-KEY>-<slug>.md`, in the same branch as the change. Every ticket that changes behaviour gets one. It is the right home for what changed and why, which tests cover it, decisions later tickets depend on, and trade-offs you accepted — write it for the next developer, at whatever length the work deserves.
-
-If a decision affects another ticket, the feature doc records it **and** you tell the coordinating session, which is what gets it to the session that needs it. Do not rely on someone reading a long comment.
-
-Two tests before you post: could a non-engineer read this and know what changed? Is everything a developer would need somewhere a developer will look? If either answer is no, the split is wrong.
-
-**The coordinating session's verification is appended to the summary comment, not added as a third.** Two comments per ticket means two, and that includes the check. Earlier tickets in this project have a separate audit comment — that predates this rule and is not the pattern to copy.
-
-## 14. Definition of Done
-
-- [ ] Requirements understood; ticket read in full
-- [ ] Existing implementation inspected; reusable code searched for
-- [ ] Plan written before implementing
-- [ ] Ticket moved Todo → In Progress at the start, with a start comment
-- [ ] Implementation complete
-- [ ] Frontend E2E added/updated where frontend behaviour changed
-- [ ] Backend unit tests added/updated where backend logic changed
-- [ ] Backend integration tests added/updated where wiring changed
-- [ ] Relevant tests run and passing — exit code checked
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Final diff reviewed; no unrelated changes; no secrets
-- [ ] `docs/api.md` and `docs/architecture.md` updated if the change altered the API surface, a layer, or a test command
-- [ ] Feature doc written at `docs/features/<TICKET-KEY>-<slug>.md`, carrying the technical detail
-- [ ] Ticket summary posted — short, non-technical (§13)
-- [ ] Single commit, no co-author — code, tests, feature doc and any reference-page updates all in it
-- [ ] Dependencies already merged to `main`
-- [ ] Ticket moved to Done
-- [ ] Merged to `main`, merge SHA added to the summary
-
-## 15. Do not
-
-Start coding without inspecting. Guess at an ambiguous requirement. Rewrite unrelated code. Add unnecessary abstractions or dependencies. Duplicate what exists. Remove tests to make them pass. Disable linting, type checking or security controls. Touch another ticket. Discard another session's changes. Use destructive git commands or force-push without explicit instruction. Commit secrets. Claim tests passed without running them. Claim a task is complete without verifying it. Mark a ticket Done with work outstanding. Invent a project convention.
-
-## 16. Reference
-
-Most of these pages describe **rules**, which stay true. Two of them — [`docs/api.md`](./docs/api.md) and [`docs/architecture.md`](./docs/architecture.md) — describe **what currently exists**, so they go stale the moment a ticket changes the surface. If your change adds or alters an endpoint, a layer, or a test script, **update those pages in the same branch as the change**. A new session reading a stale inventory builds against a fiction — that has already happened once, within an hour of the pages being written.
-
-| Document                                           | What it covers                                         |
+| Document                                           | Covers                                                 |
 | -------------------------------------------------- | ------------------------------------------------------ |
 | [`docs/architecture.md`](./docs/architecture.md)   | Workspace layout, the shared contract, request path    |
 | [`docs/frontend.md`](./docs/frontend.md)           | React/Vite/Tailwind conventions, state, accessibility  |
 | [`docs/backend.md`](./docs/backend.md)             | Express layering, validation, repositories, migrations |
 | [`docs/api.md`](./docs/api.md)                     | Endpoints as they exist, conventions for new ones      |
-| [`docs/testing.md`](./docs/testing.md)             | Commands per layer, the test database, current gaps    |
+| [`docs/testing.md`](./docs/testing.md)             | Commands per layer, test database, deferral rules      |
 | [`docs/git-workflow.md`](./docs/git-workflow.md)   | Worktrees, branches, commits, the merge route          |
 | [`docs/deployment.md`](./docs/deployment.md)       | Running it locally; what does not exist yet            |
 | [`docs/design-system.md`](./docs/design-system.md) | UI component reference                                 |
+
+## 12. Definition of Done
+
+- [ ] Ticket read in full; existing implementation inspected; reuse searched for
+- [ ] Plan written before implementing
+- [ ] Ticket moved to In Progress at the start, with a start comment
+- [ ] Implementation complete
+- [ ] Tests present at every layer that applies (§7); any deferral names its ticket
+- [ ] Tests, `npm run lint` and `npm run build` all pass — exit codes checked (§5)
+- [ ] Diff reviewed: no unrelated changes, no secrets
+- [ ] `docs/api.md` / `docs/architecture.md` updated if the surface changed (§11)
+- [ ] Feature doc written at `docs/features/<TICKET-KEY>-<slug>.md`
+- [ ] Summary comment posted — short, non-technical (§10)
+- [ ] Single commit, no co-author, documentation included (§9)
+- [ ] Every ticket this one depends on is already merged
+- [ ] Ticket moved to Done; merged to `main`; merge SHA added to the summary
+
+## 13. Do not
+
+Start coding without inspecting. Guess at an ambiguous requirement. Rewrite unrelated code. Add unnecessary abstractions or dependencies. Duplicate what exists. Remove tests to make them pass. Disable linting, type checking or security controls. Touch another ticket. Discard another session's changes. Use destructive git commands or force-push without explicit instruction. Commit secrets. Claim tests passed without running them. Claim a task is complete without verifying it. Mark a ticket Done with work outstanding. Invent a project convention.

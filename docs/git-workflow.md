@@ -64,6 +64,10 @@ Never leave a `docs:` commit trailing behind an implementation. The change and i
 
 Squash before a branch is shared, never after — rewriting history another worktree has already branched from strands that work.
 
+### Why the documentation rides in the same commit
+
+A change and the explanation of that change are one unit of work. Split them and the history stops telling you why anything happened — and a `git revert` takes back the code while leaving documentation that still describes it. That is also why a stream of small `docs:` commits is the same failure in a different costume: it is one change of intent spread across many commits.
+
 ## Merging to main
 
 Post the ticket summary and set the ticket to Done **before** merging, not after.
