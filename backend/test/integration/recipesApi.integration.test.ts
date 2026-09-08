@@ -8,8 +8,20 @@ import { createTestPool, truncateAll } from './testDb.js';
 const pool = createTestPool();
 const app = createApp(pool);
 
+// TEST-159 put every /api/recipes route behind requireAuth, so these
+// existing tests now need a signed-in session — a mechanical consequence of
+// that change, not a change to recipe behavior itself.
+let agent: ReturnType<typeof request.agent>;
+
 beforeEach(async () => {
   await truncateAll(pool);
+  agent = request.agent(app);
+  await agent
+    .post('/api/auth/register')
+    .send({ email: 'recipes-test@example.com', password: 'password123' });
+  await agent
+    .post('/api/auth/login')
+    .send({ email: 'recipes-test@example.com', password: 'password123' });
 });
 
 afterAll(async () => {
@@ -28,7 +40,7 @@ const sampleInput: RecipeInput = {
 
 describe('POST /api/recipes (AC1)', () => {
   it('creates a recipe and returns it with an id and timestamps', async () => {
-    const res = await request(app).post('/api/recipes').send(sampleInput);
+    const res = await agent.post('/api/recipes').send(sampleInput);
 
     expect(res.status).toBe(201);
     expect(res.body.id).toEqual(expect.any(String));
@@ -39,7 +51,7 @@ describe('POST /api/recipes (AC1)', () => {
   });
 
   it('rejects an invalid body with 400 before touching the database (AC5)', async () => {
-    const res = await request(app)
+    const res = await agent
       .post('/api/recipes')
       .send({ ...sampleInput, title: '' });
 
@@ -48,20 +60,20 @@ describe('POST /api/recipes (AC1)', () => {
       error: { message: expect.any(String), code: 'VALIDATION_ERROR' },
     });
 
-    const listRes = await request(app).get('/api/recipes');
+    const listRes = await agent.get('/api/recipes');
     expect(listRes.body).toEqual([]);
   });
 });
 
 describe('GET /api/recipes and /api/recipes/:id (AC2)', () => {
   it('lists saved recipes and reads one by id, ingredients in saved order', async () => {
-    const created = await request(app).post('/api/recipes').send(sampleInput);
+    const created = await agent.post('/api/recipes').send(sampleInput);
 
-    const listRes = await request(app).get('/api/recipes');
+    const listRes = await agent.get('/api/recipes');
     expect(listRes.status).toBe(200);
     expect(listRes.body).toHaveLength(1);
 
-    const getRes = await request(app).get(`/api/recipes/${created.body.id}`);
+    const getRes = await agent.get(`/api/recipes/${created.body.id}`);
     expect(getRes.status).toBe(200);
     expect(getRes.body.ingredients.map((i: { name: string }) => i.name)).toEqual([
       'Tomato',
@@ -72,7 +84,7 @@ describe('GET /api/recipes and /api/recipes/:id (AC2)', () => {
 
 describe('PUT /api/recipes/:id (AC3)', () => {
   it('replaces the ingredient set with no orphaned rows left behind', async () => {
-    const created = await request(app).post('/api/recipes').send(sampleInput);
+    const created = await agent.post('/api/recipes').send(sampleInput);
 
     const updateInput: RecipeInput = {
       title: 'Tomato Soup (updated)',
@@ -80,7 +92,7 @@ describe('PUT /api/recipes/:id (AC3)', () => {
       tags: sampleInput.tags,
       ingredients: [{ name: 'Tomato', quantity: 6, unit: 'whole' }],
     };
-    const updateRes = await request(app).put(`/api/recipes/${created.body.id}`).send(updateInput);
+    const updateRes = await agent.put(`/api/recipes/${created.body.id}`).send(updateInput);
 
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.title).toBe('Tomato Soup (updated)');
@@ -88,12 +100,12 @@ describe('PUT /api/recipes/:id (AC3)', () => {
     expect(updateRes.body.ingredients).toHaveLength(1);
     expect(updateRes.body.ingredients[0].name).toBe('Tomato');
 
-    const reread = await request(app).get(`/api/recipes/${created.body.id}`);
+    const reread = await agent.get(`/api/recipes/${created.body.id}`);
     expect(reread.body.ingredients).toHaveLength(1);
   });
 
   it('returns 404 for an id that does not exist', async () => {
-    const res = await request(app)
+    const res = await agent
       .put('/api/recipes/11111111-1111-1111-1111-111111111111')
       .send(sampleInput);
 
@@ -104,15 +116,15 @@ describe('PUT /api/recipes/:id (AC3)', () => {
 
 describe('DELETE /api/recipes/:id (AC4)', () => {
   it('deletes a recipe, its ingredients, and 404s on a subsequent read', async () => {
-    const created = await request(app).post('/api/recipes').send(sampleInput);
+    const created = await agent.post('/api/recipes').send(sampleInput);
 
-    const deleteRes = await request(app).delete(`/api/recipes/${created.body.id}`);
+    const deleteRes = await agent.delete(`/api/recipes/${created.body.id}`);
     expect(deleteRes.status).toBe(204);
 
-    const getRes = await request(app).get(`/api/recipes/${created.body.id}`);
+    const getRes = await agent.get(`/api/recipes/${created.body.id}`);
     expect(getRes.status).toBe(404);
 
-    const listRes = await request(app).get('/api/recipes');
+    const listRes = await agent.get('/api/recipes');
     expect(listRes.body).toEqual([]);
 
     const { rows } = await pool.query('SELECT * FROM recipe_ingredients WHERE recipe_id = $1', [
@@ -122,20 +134,20 @@ describe('DELETE /api/recipes/:id (AC4)', () => {
   });
 
   it('returns 404 deleting an id that does not exist', async () => {
-    const res = await request(app).delete('/api/recipes/11111111-1111-1111-1111-111111111111');
+    const res = await agent.delete('/api/recipes/11111111-1111-1111-1111-111111111111');
     expect(res.status).toBe(404);
   });
 });
 
 describe('AC6: malformed and unknown ids', () => {
   it('returns 400 for a malformed id, not a 500', async () => {
-    const res = await request(app).get('/api/recipes/not-a-uuid');
+    const res = await agent.get('/api/recipes/not-a-uuid');
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: { message: expect.any(String), code: 'VALIDATION_ERROR' } });
   });
 
   it('returns 404 for a well-formed but unknown id', async () => {
-    const res = await request(app).get('/api/recipes/11111111-1111-1111-1111-111111111111');
+    const res = await agent.get('/api/recipes/11111111-1111-1111-1111-111111111111');
     expect(res.status).toBe(404);
   });
 });

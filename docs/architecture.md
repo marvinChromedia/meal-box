@@ -38,7 +38,7 @@ Each layer has one job. Controllers parse, validate and shape responses. Service
 
 - `http.ts` — `apiRequest<T>()`, the single fetch wrapper. Every failure (an `{ error: { message, code } }` response, a non-JSON body, a rejected `fetch`) normalizes to one `ApiClientError { message, code, status }`.
 - `queryClient.ts` / `queryKeys.ts` — the one shared React Query `QueryClient` (retry/stale-time/refetch defaults live here), and the query-key convention: `[resource, operation, ...params]`, e.g. `queryKeys.recipes.detail(id)`.
-- `auth.ts` — the auth seam. `apiRequest` merges `getAuthHeaders()` into every request's headers; `setAuthHeaderProvider()` is where TEST-159 attaches credentials, header-shaped rather than cookie-shaped.
+- `auth.ts` — the auth seam. `apiRequest` merges `getAuthHeaders()` into every request's headers, and `http.ts` sends `credentials: 'include'` on every request. **TEST-159's session is an `httpOnly` cookie, not a header-based token** — `getAuthHeaders()`/`setAuthHeaderProvider()` stay wired in for anything that ever needs a header credential alongside it, but auth itself rides the cookie.
 - `config.ts` — `VITE_API_BASE_URL` / `VITE_API_MODE` from Vite env (`frontend/.env.example`).
 
 Each resource (`frontend/src/features/recipes/`, `frontend/src/features/shopping-list/`) has an `api.ts` (a typed interface with a real `apiRequest`-backed implementation and an in-memory mock, selected by `VITE_API_MODE`) and a `hooks.ts` (the query/mutation hooks screens actually import — `useRecipes`, `useCreateRecipe`, `useShoppingList`, ...). See [`docs/features/TEST-155-api-client.md`](./features/TEST-155-api-client.md) for the full convention writeup.

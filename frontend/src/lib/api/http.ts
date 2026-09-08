@@ -64,6 +64,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
+      // TEST-159's session transport is an httpOnly cookie, not a bearer
+      // token — this sends and accepts it. getAuthHeaders() stays wired in
+      // for anything that ever needs a header-based credential alongside it.
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders(),

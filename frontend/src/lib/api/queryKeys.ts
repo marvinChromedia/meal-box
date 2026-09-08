@@ -21,4 +21,8 @@ export const queryKeys = {
     all: ['shopping-list'] as const,
     detail: () => [...queryKeys.shoppingList.all, 'detail'] as const,
   },
+  auth: {
+    all: ['auth'] as const,
+    currentUser: () => [...queryKeys.auth.all, 'currentUser'] as const,
+  },
 };

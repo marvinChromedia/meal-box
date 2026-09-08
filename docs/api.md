@@ -26,6 +26,25 @@ Validation requires a non-empty title, at least one step and at least one ingred
 
 **There is no search query parameter, deliberately** — recipe search filters client-side over the already-fetched list.
 
+### `/api/auth`
+
+Mounted in `backend/src/app.ts`, routed in `backend/src/routes/authRoutes.ts`:
+
+| Method | Path                | Notes                                                                          |
+| ------ | ------------------- | ------------------------------------------------------------------------------ |
+| `POST` | `/api/auth/register` | Body validated against `AuthCredentials`; `409` on a taken email               |
+| `POST` | `/api/auth/login`    | Sets the session cookie; `401` with an identical message for unknown email or wrong password — never reveals which |
+| `POST` | `/api/auth/logout`   | Deletes the server-side session and clears the cookie; safe to call while already signed out |
+| `GET`  | `/api/auth/me`       | Behind `requireAuth`; returns the signed-in `User`                             |
+
+Session is an `httpOnly`, `Secure` (in production), `SameSite=Lax` cookie — not a bearer
+token. Every `/api/recipes` and `/api/shopping-list` route requires this session
+(`requireAuth`, mounted once per prefix in `app.ts`); a route addressed by a specific
+record id additionally needs `requireOwner` applied to it (see Ownership below and
+[`TEST-159-authentication.md`](./features/TEST-159-authentication.md)) — **not yet done
+for the existing `recipes` and `shopping-list` by-id routes**, which is a named, open gap
+rather than an oversight.
+
 ### `/api/shopping-list`
 
 Mounted in `backend/src/app.ts`, routed in `backend/src/routes/shoppingListRoutes.ts`:

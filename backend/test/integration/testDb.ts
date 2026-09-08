@@ -10,6 +10,6 @@ export function createTestPool(): Pool {
 
 export async function truncateAll(pool: Pool): Promise<void> {
   await pool.query(
-    'TRUNCATE TABLE shopping_list_item_sources, shopping_list_items, shopping_lists, recipe_ingredients, recipes RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE shopping_list_item_sources, shopping_list_items, shopping_lists, recipe_ingredients, recipes, sessions, users RESTART IDENTITY CASCADE',
   );
 }
