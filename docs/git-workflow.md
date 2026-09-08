@@ -11,6 +11,12 @@ git -C /path/to/learning-session-ai-integration \
 
 Never two sessions in one checkout. Branch names are `feat/<TICKET-KEY>-<slug>`, or `fix/<TICKET-KEY>-<slug>` for a bug — one branch per ticket, created off `main`.
 
+### Expect one directory prompt per new worktree
+
+Worktrees live in `../mealbox-worktrees/`, outside the repository directory a session is scoped to, so creating one raises a one-time directory-access request for that path. That prompt is the application asking, not a rule stopping you — approve it and carry on. It is not a sign you are doing something wrong, and it is not something the coordinating session can waive.
+
+Worktrees are kept **outside** the repository deliberately. Nesting them inside it would remove the prompt, and would also put every other session's in-progress files within reach of `prettier --write .` and `eslint .` run from the root — one session could silently rewrite another's uncommitted work. That trade is not worth making.
+
 **Confirm you are in the worktree you think you are in, before you read or change anything.** Creating a worktree does not guarantee your working directory moved into it — a session has already spent time inspecting an already-merged worktree while believing it was looking at its own new one. With eight worktrees on one machine, most of them holding a plausible-looking copy of the same project, the wrong tree does not look wrong.
 
 ```bash
