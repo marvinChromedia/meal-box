@@ -121,6 +121,55 @@ Props: standard `<div>` attributes, plus:
 </Alert>
 ```
 
+## EmptyState
+
+`frontend/src/components/ui/EmptyState.tsx`
+
+For a screen with nothing to show yet — no recipes saved, no shopping list generated. Announced to assistive technology (`role="status"`) since it typically replaces a loading state once a request resolves. Props: standard `<div>` attributes, plus:
+- `title` (required)
+- `description?`: string
+- `action?`: `ReactNode` — pass a `<Button>` (or any element); `EmptyState` doesn't prescribe what the action looks like
+- `icon?`: `ReactNode`
+
+```tsx
+<EmptyState
+  title="No recipes yet"
+  description="Save your first recipe to start building your recipe box."
+  action={<Button size="sm">Add a recipe</Button>}
+/>
+```
+
+## LoadingState
+
+`frontend/src/components/ui/LoadingState.tsx`
+
+Skeleton placeholder reserving the space real content will occupy, so the layout doesn't shift when it swaps in. Announced via `role="status"` + `aria-busy="true"`; the visible bars are `aria-hidden` since the screen-reader text (`label`) already says what's loading. Props: standard `<div>` attributes, plus:
+- `label?`: string — screen-reader-only text, default `"Loading…"`
+- `rows?`: number — how many skeleton bars to render, default `3`. Pick a count that roughly matches what's loading (e.g. 3 for a short list, more for a longer one).
+
+```tsx
+<LoadingState label="Loading recipes…" rows={3} />
+```
+
+## ErrorState
+
+`frontend/src/components/ui/ErrorState.tsx`
+
+Built on `Alert` (so it inherits `role="alert"` for AT announcement). Always shows a plain-language `message`; never shows a raw exception, stack trace, or `code` on its own. Props: standard `<div>` attributes, plus:
+- `message` (required) — the API's error message, in plain language
+- `title?`: string, default `"Something went wrong"`
+- `code?`: string — shown alongside `message`, never in place of it
+- `onRetry?`: `() => void` — when given, renders a "Try again" button that calls it
+- `retryLabel?`: string, default `"Try again"`
+
+```tsx
+<ErrorState
+  message={error.message}
+  code={error.code}
+  onRetry={() => refetch()}
+/>
+```
+
 ## Modal
 
 `frontend/src/components/ui/Modal.tsx`

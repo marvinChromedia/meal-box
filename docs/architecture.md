@@ -52,7 +52,7 @@ Each resource (`frontend/src/features/recipes/`, `frontend/src/features/shopping
 - `backend/src/routes/`, `controllers/`, `services/`, `schemas/` — the HTTP surface for recipes and the shopping list, following the layering above. `createApp(pool)` takes an optional pool so tests can point it at the test database.
 - `backend/src/middleware/` — `validateBody` / `validateParams` (Zod at the boundary) and the async error handler.
 - `backend/src/services/shoppingListService.ts` — the ingredient-combining and regeneration-merge logic, as two pure, DB-free functions (`aggregateIngredients`, `mergeShoppingList`).
-- `frontend/src/components/ui/` — ten UI components; see [`design-system.md`](./design-system.md).
+- `frontend/src/components/ui/` — thirteen UI components, including `EmptyState`, `LoadingState` and `ErrorState` for the states every data-backed screen needs (TEST-157); see [`design-system.md`](./design-system.md).
 - `frontend/src/pages/DesignSystemPage.tsx` — the live gallery at `/design`.
 - `frontend/src/lib/api/`, `frontend/src/features/{recipes,shopping-list}/{api,hooks}.ts` — the frontend data layer described above.
 

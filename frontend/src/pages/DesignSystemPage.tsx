@@ -7,7 +7,10 @@ import { Button } from '../components/ui/Button.tsx';
 import type { ButtonSize, ButtonVariant } from '../components/ui/Button.tsx';
 import { Card, CardBody, CardFooter, CardHeader } from '../components/ui/Card.tsx';
 import { Checkbox } from '../components/ui/Checkbox.tsx';
+import { EmptyState } from '../components/ui/EmptyState.tsx';
+import { ErrorState } from '../components/ui/ErrorState.tsx';
 import { Input } from '../components/ui/Input.tsx';
+import { LoadingState } from '../components/ui/LoadingState.tsx';
 import { Modal } from '../components/ui/Modal.tsx';
 import { Radio } from '../components/ui/Radio.tsx';
 import { Select } from '../components/ui/Select.tsx';
@@ -143,6 +146,38 @@ export function DesignSystemPage() {
           <Alert variant="danger" title="Couldn&apos;t save">
             Check your connection and try again.
           </Alert>
+        </div>
+      </Section>
+
+      <Section title="Empty, loading and error states">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-gray-700">EmptyState — with action</p>
+            <EmptyState
+              title="No recipes yet"
+              description="Save your first recipe to start building your recipe box."
+              action={<Button size="sm">Add a recipe</Button>}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-gray-700">EmptyState — description only</p>
+            <EmptyState
+              title="No shopping list yet"
+              description="Select recipes and generate a list to see it here."
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-gray-700">LoadingState</p>
+            <LoadingState label="Loading recipes…" rows={3} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-gray-700">ErrorState — with retry and code</p>
+            <ErrorState
+              message="Couldn't load your recipes. Check your connection."
+              code="NETWORK_ERROR"
+              onRetry={() => undefined}
+            />
+          </div>
         </div>
       </Section>
 
