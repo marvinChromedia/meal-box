@@ -11,6 +11,8 @@ git -C /path/to/learning-session-ai-integration \
 
 Never two sessions in one checkout. Branch names are `feat/<TICKET-KEY>-<slug>`, or `fix/<TICKET-KEY>-<slug>` for a bug — one branch per ticket, created off `main`.
 
+**You do not need permission to work in your own worktree.** Creating it, branching in it, running tests and builds in it, committing, rebasing and pushing your branch are all yours to do — do not stop to ask the coordinating session for any of it. Ask only about the things the rules genuinely reserve: a contract change in `shared/`, a decision that binds another ticket, or a conflict with another session's live work.
+
 **Never remove the worktree you are running in.** A session whose working directory disappears cannot be reached any more — it drops out of the project mid-flight, taking whatever it knew with it. Leave cleanup to the PM session, or move out of the directory first.
 
 ## If `git` is refused inside a worktree

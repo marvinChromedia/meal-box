@@ -171,7 +171,7 @@ Several sessions work this repository at once. These rules exist to stop one ses
 
 1. Work only within your assigned ticket's scope.
 2. `git status` and check your branch before starting.
-3. Work in your own worktree — never two sessions in one checkout. See [`docs/git-workflow.md`](./docs/git-workflow.md).
+3. Work in your own worktree — never two sessions in one checkout. See [`docs/git-workflow.md`](./docs/git-workflow.md). **Creating and working in that worktree needs nobody's approval** — branch, test, build, commit, rebase and push your own branch without asking.
 4. Understand uncommitted changes before you touch the files they are in.
 5. Never discard, overwrite or clean up another session's uncommitted work.
 6. Never `git reset --hard`, never force-push, never rewrite another task's commits.
