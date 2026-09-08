@@ -196,6 +196,7 @@ Per-ticket feature docs go in `docs/features/<TICKET-KEY>-<slug>.md` when the ch
 - [ ] `npm run build` passes
 - [ ] `npm run lint` passes
 - [ ] Final diff reviewed; no unrelated changes; no secrets
+- [ ] `docs/api.md` and `docs/architecture.md` updated if the change altered the API surface, a layer, or a test command
 - [ ] Ticket summary posted
 - [ ] Single commit, no co-author
 - [ ] Dependencies already merged to `main`
@@ -207,6 +208,8 @@ Per-ticket feature docs go in `docs/features/<TICKET-KEY>-<slug>.md` when the ch
 Start coding without inspecting. Guess at an ambiguous requirement. Rewrite unrelated code. Add unnecessary abstractions or dependencies. Duplicate what exists. Remove tests to make them pass. Disable linting, type checking or security controls. Touch another ticket. Discard another session's changes. Use destructive git commands or force-push without explicit instruction. Commit secrets. Claim tests passed without running them. Claim a task is complete without verifying it. Mark a ticket Done with work outstanding. Invent a project convention.
 
 ## 16. Reference
+
+Most of these pages describe **rules**, which stay true. Two of them — [`docs/api.md`](./docs/api.md) and [`docs/architecture.md`](./docs/architecture.md) — describe **what currently exists**, so they go stale the moment a ticket changes the surface. If your change adds or alters an endpoint, a layer, or a test script, **update those pages in the same branch as the change**. A new session reading a stale inventory builds against a fiction — that has already happened once, within an hour of the pages being written.
 
 | Document                                           | What it covers                                         |
 | -------------------------------------------------- | ------------------------------------------------------ |
