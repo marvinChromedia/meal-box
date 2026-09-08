@@ -169,18 +169,27 @@ Before committing: `git status`, read the whole diff, confirm only intended file
 
 Do not rewrite or squash another session's commits. Do not force-push.
 
-## 13. Ticket summary
+## 13. Ticket comments
 
-Post a summary comment when the work is done, **before** merging. Write it so both a developer and a non-engineer can follow it — plain-language summary first, detail below:
+A ticket carries two comments and no more. **Both are short and written for a non-engineer** — a PM or stakeholder reading the ticket should understand what happened without asking a developer. The technical detail belongs in the feature doc, not the ticket.
 
-- **Summary** — what was implemented.
-- **Changes** — the important changes.
-- **Testing** — tests added or updated, tests run, and their results. Name any layer that does not apply and why; an unexplained absence looks identical to a skipped test.
-- **Behavior** — user-facing changes.
-- **Configuration / Deployment** — new environment variables, migrations, or setup steps.
-- **Notes** — anything the PM should know, including decisions later tickets depend on.
+**The start comment**, posted when you move the ticket to In Progress. Three lines: who is working it, the branch, and what it was waiting on.
 
-Per-ticket feature docs go in `docs/features/<TICKET-KEY>-<slug>.md` when the change is worth explaining beyond the summary.
+**The summary comment**, posted when the work is done and **before** merging. Keep it to a short paragraph, or a handful of plain bullets:
+
+- What a person can now do that they could not before, or what stopped being broken.
+- Anything they will notice about how it behaves.
+- Anything that needs doing to run it — a new setting, a database change.
+
+Then the merge commit SHA, added to that same comment once it lands.
+
+**What does not go in a comment:** file paths, function and column names, test counts, framework names, config flags, code snippets, layer-by-layer test breakdowns, acceptance-criterion mapping. None of it means anything to the audience the comment is for.
+
+**Where that detail goes instead:** `docs/features/<TICKET-KEY>-<slug>.md`, in the same branch as the change. Every ticket that changes behaviour gets one. It is the right home for what changed and why, which tests cover it, decisions later tickets depend on, and trade-offs you accepted — write it for the next developer, at whatever length the work deserves.
+
+If a decision affects another ticket, the feature doc records it **and** you tell the coordinating session, which is what gets it to the session that needs it. Do not rely on someone reading a long comment.
+
+Two tests before you post: could a non-engineer read this and know what changed? Is everything a developer would need somewhere a developer will look? If either answer is no, the split is wrong.
 
 ## 14. Definition of Done
 
@@ -197,7 +206,8 @@ Per-ticket feature docs go in `docs/features/<TICKET-KEY>-<slug>.md` when the ch
 - [ ] `npm run lint` passes
 - [ ] Final diff reviewed; no unrelated changes; no secrets
 - [ ] `docs/api.md` and `docs/architecture.md` updated if the change altered the API surface, a layer, or a test command
-- [ ] Ticket summary posted
+- [ ] Feature doc written at `docs/features/<TICKET-KEY>-<slug>.md`, carrying the technical detail
+- [ ] Ticket summary posted — short, non-technical (§13)
 - [ ] Single commit, no co-author
 - [ ] Dependencies already merged to `main`
 - [ ] Ticket moved to Done
