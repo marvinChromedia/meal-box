@@ -71,7 +71,7 @@ Never remove a test because it fails, disable validation to make one pass, weake
 
 Review your own diff for debugging leftovers, temporary code, duplicated logic, unused imports, weak naming, missing error handling and unintended side effects. `npm run lint` and `npm run format` are the checks; TypeScript is `strict: true` in both workspaces. **Do not disable a check, loosen `strict`, or add `any` to make a task pass.**
 
-Never commit or log secrets, passwords, keys or tokens. Never bypass authentication, authorization or validation, and never trust client-side authorization alone. `.env` is gitignored; `.env.example` carries variable names and no values. All SQL parameterized. Every mutating endpoint validates its input. CORS locked to the known frontend origin.
+Never commit or log secrets, passwords, keys or tokens. Never bypass authentication, authorization or validation, and never trust client-side authorization alone. **Every API route is behind authentication** — a new endpoint is mounted with `requireAuth`, adds `requireOwner` if it touches a user's own rows, and its integration tests sign in; see [`docs/backend.md`](./docs/backend.md). `.env` is gitignored; `.env.example` carries variable names and no values. All SQL parameterized. Every mutating endpoint validates its input. CORS locked to the known frontend origin.
 
 When a change touches authentication, authorization, permissions, user access or sensitive data, review the diff explicitly for security consequences and say what you checked in the summary.
 

@@ -29,6 +29,37 @@ An unknown id returns `404`, a malformed one `400`. Never a `500` and never a st
 - Multi-row writes use `backend/src/db/withTransaction.ts`. Creating a recipe with its ingredients, or replacing an ingredient set, is one transaction.
 - `backend/src/db/queryable.ts` is the abstraction repositories take, which is what lets unit tests mock the database.
 
+## Authentication
+
+Every API route is behind authentication as of TEST-159. Sessions are server-side, carried in an httpOnly cookie; `/api/auth` is the only unguarded mount. Full detail in [`features/TEST-159-authentication.md`](./features/TEST-159-authentication.md).
+
+**A new route is protected by mounting it with `requireAuth`:**
+
+```ts
+app.use('/api/recipes', requireAuth(pool), createRecipesRouter(pool));
+```
+
+`requireAuth` establishes _who_ is calling. It does not check that a given row belongs to them — ownership is a separate concern each route applies with `requireOwner`. Adding an endpoint that reads or writes a user's data means both, and forgetting the second is the mistake that leaves one user able to fetch another's recipe by id.
+
+**A new integration test signs in through the API**, using a supertest agent so the session cookie persists across requests:
+
+```ts
+let agent: ReturnType<typeof request.agent>;
+
+beforeEach(async () => {
+  await truncateAll(pool);
+  agent = request.agent(app);
+  await agent
+    .post('/api/auth/register')
+    .send({ email: 'x-test@example.com', password: 'password123' });
+  await agent
+    .post('/api/auth/login')
+    .send({ email: 'x-test@example.com', password: 'password123' });
+});
+```
+
+Then call through `agent`, not `request(app)` — a bare `request(app)` is unauthenticated and gets a 401, which reads as a broken test rather than a missing session. Use an email unique to your test file; the suites share a database and truncate between tests.
+
 ## Configuration
 
 Config comes from `.env`, with every required variable listed in `backend/.env.example` and **no real values**. Currently: `PORT`, `DATABASE_URL`, `CORS_ORIGIN`, `TEST_DATABASE_URL`.
