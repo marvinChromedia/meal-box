@@ -141,7 +141,8 @@ Then merge it, in this order:
 2. Re-run the full test suite after the rebase. A green run before the rebase proves nothing about the merged result.
 3. Squash to a single commit (see Git / commits).
 4. `git checkout main && git merge --ff-only <branch> && git push origin main`. If the fast-forward is refused, `main` moved — go back to step 1 rather than forcing anything.
-5. Add the merge commit SHA to the ticket's completion comment, remove your worktree, and tell the coordinating session it landed.
+5. Add the merge commit SHA to the ticket's completion comment and tell the coordinating session it landed.
+6. **Do not remove the worktree you are running in.** A session whose working directory disappears can no longer be reached — it drops out of the project mid-flight, taking whatever it knew with it. Leave cleanup to the coordinating session, or move out of the directory first and only then remove it.
 
 Merging is self-serve; the audit trail and closing the ticket are not. Only the coordinating session moves a ticket to `DONE`, after checking it against its own acceptance criteria. Never force-push `main`.
 
