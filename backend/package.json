@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "migrate:up": "node-pg-migrate up --tsx -j ts -m migrations",
     "migrate:down": "node-pg-migrate down --tsx -j ts -m migrations",
+    "seed:recipes": "tsx scripts/seedRecipes.ts",
     "test": "npm run test:unit && npm run test:contract && npm run test:integration",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:contract": "vitest run --config vitest.contract.config.ts",
