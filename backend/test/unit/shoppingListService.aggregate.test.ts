@@ -64,15 +64,98 @@ describe('aggregateIngredients', () => {
     ]);
   });
 
-  it('DoD "differing units on the same name": still combines by name only (AC4), summing raw quantities', () => {
+  it('TEST-246 AC2: a count unit and a mass unit on the same name never merge', () => {
     const result = aggregateIngredients([
       recipe('r1', [{ name: 'Onion', quantity: 1, unit: 'whole' }]),
       recipe('r2', [{ name: 'Onion', quantity: 150, unit: 'g' }]),
     ]);
 
-    expect(result).toEqual([
-      { name: 'Onion', quantity: 151, unit: 'whole', sourceRecipeIds: ['r1', 'r2'] },
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { name: 'Onion', quantity: 1, unit: 'whole', sourceRecipeIds: ['r1'] },
+        { name: 'Onion', quantity: 150, unit: 'g', sourceRecipeIds: ['r2'] },
+      ]),
+    );
+  });
+
+  it('TEST-246 AC2: an empty/unrecognized unit never throws and never merges with a metric unit', () => {
+    const result = aggregateIngredients([
+      recipe('r1', [{ name: 'Butter', quantity: 1, unit: '' }]),
+      recipe('r2', [{ name: 'Butter', quantity: 200, unit: 'g' }]),
+      recipe('r3', [{ name: 'Butter', quantity: 2, unit: 'sticks' }]),
     ]);
+
+    expect(result).toHaveLength(3);
+  });
+
+  it('TEST-246 AC1: g and kg on the same name combine into one line, below the kg threshold', () => {
+    const result = aggregateIngredients([
+      recipe('r1', [{ name: 'Flour', quantity: 200, unit: 'g' }]),
+      recipe('r2', [{ name: 'Flour', quantity: 0.3, unit: 'kg' }]),
+    ]);
+
+    expect(result).toEqual([
+      { name: 'Flour', quantity: 500, unit: 'g', sourceRecipeIds: ['r1', 'r2'] },
+    ]);
+  });
+
+  it('TEST-246 AC1: a g+g total crossing 1000 displays in kg instead', () => {
+    const result = aggregateIngredients([
+      recipe('r1', [{ name: 'Flour', quantity: 700, unit: 'g' }]),
+      recipe('r2', [{ name: 'Flour', quantity: 400, unit: 'g' }]),
+    ]);
+
+    expect(result).toEqual([
+      { name: 'Flour', quantity: 1.1, unit: 'kg', sourceRecipeIds: ['r1', 'r2'] },
+    ]);
+  });
+
+  it('TEST-246 AC1: ml and l on the same name combine the same way, on the volume side', () => {
+    const result = aggregateIngredients([
+      recipe('r1', [{ name: 'Milk', quantity: 250, unit: 'ml' }]),
+      recipe('r2', [{ name: 'Milk', quantity: 0.75, unit: 'l' }]),
+    ]);
+
+    expect(result).toEqual([{ name: 'Milk', quantity: 1, unit: 'l', sourceRecipeIds: ['r1', 'r2'] }]);
+  });
+
+  it('TEST-246 AC5: a conversion producing a repeating decimal rounds to 2 places, round-half-up', () => {
+    // 1001 g -> 1.001 kg, which rounds to 1 kg at 2 decimal places.
+    const result = aggregateIngredients([
+      recipe('r1', [{ name: 'Sugar', quantity: 1000, unit: 'g' }]),
+      recipe('r2', [{ name: 'Sugar', quantity: 1, unit: 'g' }]),
+    ]);
+
+    expect(result).toEqual([{ name: 'Sugar', quantity: 1, unit: 'kg', sourceRecipeIds: ['r1', 'r2'] }]);
+  });
+
+  it('TEST-246: unit matching is case-insensitive, same as name matching', () => {
+    const result = aggregateIngredients([
+      recipe('r1', [{ name: 'Flour', quantity: 200, unit: 'G' }]),
+      recipe('r2', [{ name: 'Flour', quantity: 100, unit: 'g' }]),
+    ]);
+
+    expect(result).toEqual([
+      { name: 'Flour', quantity: 300, unit: 'g', sourceRecipeIds: ['r1', 'r2'] },
+    ]);
+  });
+
+  it('TEST-246: identical non-metric units on the same name still combine (literal match, outside the closed set)', () => {
+    const result = aggregateIngredients([
+      recipe('r1', [{ name: 'Flour', quantity: 1, unit: 'cup' }]),
+      recipe('r2', [{ name: 'Flour', quantity: 0.5, unit: 'cup' }]),
+    ]);
+
+    expect(result).toEqual([
+      { name: 'Flour', quantity: 1.5, unit: 'cup', sourceRecipeIds: ['r1', 'r2'] },
+    ]);
+  });
+
+  it('TEST-246 AC1: a single metric contributor still normalizes to the larger unit once it warrants it', () => {
+    const result = aggregateIngredients([recipe('r1', [{ name: 'Rice', quantity: 1500, unit: 'g' }])]);
+
+    expect(result).toEqual([{ name: 'Rice', quantity: 1.5, unit: 'kg', sourceRecipeIds: ['r1'] }]);
   });
 
   it('AC4: genuinely different ingredient names are never merged, even describing the same food', () => {

@@ -139,4 +139,43 @@ describe('mergeShoppingList — binding regeneration decision (TEST-76 Beacon co
     expect(deletions).toEqual(['drop-me']);
     expect(upserts).toEqual([]);
   });
+
+  it('TEST-246: matching is by name AND unit class — a name match in an incompatible unit is not a match', () => {
+    const existing = [existingItem({ id: 'item-1', name: 'Onion', unit: 'whole', quantity: 2 })];
+    const { upserts, deletions } = mergeShoppingList(existing, [
+      aggregated({ name: 'Onion', unit: 'g', quantity: 150, sourceRecipeIds: ['r2'] }),
+    ]);
+
+    // No match for the g-group -> fresh insert; the old whole-unit line is
+    // unmatched and, being unedited, dropped (rule 5) rather than merged into.
+    expect(deletions).toEqual(['item-1']);
+    expect(upserts).toEqual([
+      expect.objectContaining({ name: 'Onion', unit: 'g', quantity: 150, checked: false }),
+    ]);
+  });
+
+  it('TEST-246 AC4: a hand-edited line survives untouched when regeneration splits its name into a different unit group', () => {
+    // Deliberate decision (see docs/features/TEST-246-shopping-list-unit-conversion.md):
+    // an existing hand-edited line that no longer has a compatible aggregated
+    // group is kept as-is (rule 5), and the newly-separated group inserts as
+    // its own line — it is never silently folded into the edited line.
+    const existing = [
+      existingItem({
+        id: 'edited-1',
+        name: 'Onion',
+        unit: 'whole',
+        quantity: 12,
+        quantityEdited: true,
+      }),
+    ];
+    const { upserts, deletions } = mergeShoppingList(existing, [
+      aggregated({ name: 'Onion', unit: 'g', quantity: 150, sourceRecipeIds: ['r2'] }),
+    ]);
+
+    expect(deletions).toEqual([]);
+    expect(upserts.find((u) => u.id === 'edited-1')).toBeUndefined();
+    expect(upserts).toEqual([
+      expect.objectContaining({ name: 'Onion', unit: 'g', quantity: 150 }),
+    ]);
+  });
 });

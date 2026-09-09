@@ -14,13 +14,15 @@ and after trimming whitespace** — `"Onion"`, `"onion"` and `" onion "` are the
 ingredient. This is name equality only: nothing else about the ingredient is
 considered.
 
-That has a real consequence worth stating plainly: **a same-named ingredient with a
-different unit is still combined**, and the resulting quantity is a raw sum across
-whatever units happen to be present (e.g. `1` + `150` → `151`, even if one was "whole"
-and the other was "g"). Unit-aware combination is explicitly out of scope for this
-ticket (AC4) — the follow-up ticket for fuzzy matching and unit conversion is where
-that gets fixed. Until then, a same-named ingredient across recipes should use
-consistent units, or the combined quantity will not be meaningful.
+**Superseded by TEST-246.** This section originally said a same-named ingredient with a
+different unit was still combined by a raw sum regardless of unit (e.g. `1` + `150` →
+`151` even for "whole" + "g"), deferring unit-aware combination to a follow-up ticket.
+That follow-up is TEST-246: combination now also requires the units to be identical, or
+both in the same closed-set metric class (mass `g`/`kg`, volume `ml`/`l`) — anything else
+stays separate, by design, not as a remaining gap. See
+[`docs/features/TEST-246-shopping-list-unit-conversion.md`](./TEST-246-shopping-list-unit-conversion.md)
+for the conversion and rounding rules. Fuzzy/plural-aware name matching is still out of
+scope, unchanged by TEST-246.
 
 ## Regeneration merges into the existing list — binding decision
 

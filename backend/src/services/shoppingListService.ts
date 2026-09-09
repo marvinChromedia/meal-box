@@ -32,41 +32,120 @@ function normalizeIngredientName(name: string): string {
   return name.trim().toLowerCase();
 }
 
+function normalizeUnit(unit: string): string {
+  return unit.trim().toLowerCase();
+}
+
+type UnitClass = 'mass-metric' | 'volume-metric' | 'other';
+
+// TEST-246: the entire closed set. Deliberately just the abbreviations named
+// in the ticket's own AC1 — no aliases (e.g. "gram", "litre") since nothing
+// in this codebase's recipe data uses spelled-out units, and the DoD calls
+// for "a small, explicit, closed set — no open-ended unit parser".
+const MASS_METRIC_TO_GRAMS: Record<string, number> = { g: 1, kg: 1000 };
+const VOLUME_METRIC_TO_ML: Record<string, number> = { ml: 1, l: 1000 };
+
+function classifyUnit(unit: string): UnitClass {
+  const normalized = normalizeUnit(unit);
+  if (normalized in MASS_METRIC_TO_GRAMS) return 'mass-metric';
+  if (normalized in VOLUME_METRIC_TO_ML) return 'volume-metric';
+  return 'other';
+}
+
+function toBaseQuantity(quantity: number, unit: string, unitClass: UnitClass): number {
+  if (unitClass === 'mass-metric') return quantity * MASS_METRIC_TO_GRAMS[normalizeUnit(unit)]!;
+  if (unitClass === 'volume-metric') return quantity * VOLUME_METRIC_TO_ML[normalizeUnit(unit)]!;
+  return quantity;
+}
+
 /**
- * Combines ingredients that share a name (case-insensitive, trimmed) across
- * the given recipes, summing quantities and recording which recipes
- * contributed. Matching is by name equality only (AC4) — a same-named
- * ingredient with a different unit is still combined, and the resulting
- * quantity is a raw sum across whatever units are present; unit-aware
- * combination is explicitly out of scope for this ticket.
+ * Groups ingredients for aggregation and merge alike: same normalized name,
+ * and either the same literal unit or both units in the same closed-set
+ * metric class (TEST-246 AC1/AC2). An unrecognised or empty unit is its own
+ * bucket — it only combines with an identical literal unit, never guessed
+ * into a metric class, so it can never throw or silently misconvert.
+ *
+ * Shared by aggregateIngredients and mergeShoppingList so the two paths can
+ * never disagree about what counts as "the same line" (ticket note: verify
+ * the conversion isn't duplicated across the generate and merge paths).
+ */
+function aggregationKey(name: string, unit: string): string {
+  const unitClass = classifyUnit(unit);
+  const unitPart = unitClass === 'other' ? normalizeUnit(unit) : unitClass;
+  return `${normalizeIngredientName(name)} ${unitPart}`;
+}
+
+/**
+ * Rounds to 2 decimal places, round-half-up (TEST-246 AC5) — the one
+ * rounding rule, applied at the one place a quantity is finalized.
+ */
+function roundQuantity(quantity: number): number {
+  return Math.round(quantity * 100) / 100;
+}
+
+interface IngredientGroup {
+  name: string;
+  unitClass: UnitClass;
+  /** First-seen literal unit, verbatim — used as the output unit for 'other' groups. */
+  literalUnit: string;
+  /** Base-unit (g/ml) running total for metric classes; raw running total otherwise. */
+  quantitySum: number;
+  sourceRecipeIds: string[];
+}
+
+function finalizeGroup(group: IngredientGroup): AggregatedIngredient {
+  const base = { name: group.name, sourceRecipeIds: group.sourceRecipeIds };
+
+  if (group.unitClass === 'mass-metric' || group.unitClass === 'volume-metric') {
+    // AC1: displayed in the larger unit once the total warrants it.
+    const useLargerUnit = group.quantitySum >= 1000;
+    const unit =
+      group.unitClass === 'mass-metric' ? (useLargerUnit ? 'kg' : 'g') : useLargerUnit ? 'l' : 'ml';
+    const quantity = useLargerUnit ? group.quantitySum / 1000 : group.quantitySum;
+    return { ...base, quantity: roundQuantity(quantity), unit };
+  }
+
+  return { ...base, quantity: roundQuantity(group.quantitySum), unit: group.literalUnit };
+}
+
+/**
+ * Combines ingredients that share a name (case-insensitive, trimmed) and a
+ * compatible unit across the given recipes, summing quantities and
+ * recording which recipes contributed. "Compatible" means identical, or both
+ * within the same closed-set metric class (TEST-246 AC1) — anything else,
+ * including no unit at all, only combines with an exact literal match (AC2:
+ * there is no defensible conversion between a count and a mass).
  *
  * Pure and DB-free so it is unit-testable on its own (ticket DoD).
  */
 export function aggregateIngredients(recipes: Recipe[]): AggregatedIngredient[] {
-  const byNormalizedName = new Map<string, AggregatedIngredient>();
+  const groups = new Map<string, IngredientGroup>();
 
   for (const recipe of recipes) {
     for (const ingredient of recipe.ingredients) {
-      const key = normalizeIngredientName(ingredient.name);
-      const existing = byNormalizedName.get(key);
+      const unitClass = classifyUnit(ingredient.unit);
+      const key = aggregationKey(ingredient.name, ingredient.unit);
+      const contribution = toBaseQuantity(ingredient.quantity, ingredient.unit, unitClass);
+      const existing = groups.get(key);
 
       if (existing) {
-        existing.quantity += ingredient.quantity;
+        existing.quantitySum += contribution;
         if (!existing.sourceRecipeIds.includes(recipe.id)) {
           existing.sourceRecipeIds.push(recipe.id);
         }
       } else {
-        byNormalizedName.set(key, {
+        groups.set(key, {
           name: ingredient.name.trim(),
-          quantity: ingredient.quantity,
-          unit: ingredient.unit,
+          unitClass,
+          literalUnit: ingredient.unit,
+          quantitySum: contribution,
           sourceRecipeIds: [recipe.id],
         });
       }
     }
   }
 
-  return [...byNormalizedName.values()];
+  return [...groups.values()].map(finalizeGroup);
 }
 
 /**
@@ -79,9 +158,19 @@ export function aggregateIngredients(recipes: Recipe[]): AggregatedIngredient[] 
  *  3. A manual item (empty sourceRecipeIds) is outside matching entirely and
  *     is never touched here.
  *  4. Checked-off state is preserved for any item that survives regeneration
- *     under the same name match.
- *  5. An ingredient no longer required by any selected recipe is dropped if
- *     it was never hand-edited, kept if it was.
+ *     under the same name+unit-class match.
+ *  5. An ingredient no longer required by any selected recipe (under its
+ *     current name+unit-class) is dropped if it was never hand-edited, kept
+ *     if it was.
+ *
+ * TEST-246: matching now keys on name *and* unit-class (aggregationKey), not
+ * name alone, since two lines can now share a name but belong to different
+ * unit groups (AC2). This means an existing line can go unmatched purely
+ * because aggregation now splits its name into a different-keyed group —
+ * rule 5 already covers that correctly with no new logic: an unmatched
+ * hand-edited line is kept untouched, and the new group inserts as a
+ * separate line (see docs/features/TEST-246-shopping-list-unit-conversion.md
+ * for the worked example — this is the deliberate AC4 decision).
  *
  * Pure and DB-free so it is unit-testable on its own (ticket DoD).
  */
@@ -89,22 +178,22 @@ export function mergeShoppingList(
   existing: ShoppingListItemForMerge[],
   aggregated: AggregatedIngredient[],
 ): MergeResult {
-  const existingByName = new Map<string, ShoppingListItemForMerge>();
+  const existingByKey = new Map<string, ShoppingListItemForMerge>();
   for (const item of existing) {
     // Manual items are never matched against aggregation — rule 3.
     if (item.sourceRecipeIds.length === 0) continue;
-    existingByName.set(normalizeIngredientName(item.name), item);
+    existingByKey.set(aggregationKey(item.name, item.unit), item);
   }
 
   let nextPosition =
     existing.length > 0 ? Math.max(...existing.map((item) => item.position)) + 1 : 0;
 
   const upserts: ShoppingListItemUpsert[] = [];
-  const matchedNames = new Set<string>();
+  const matchedKeys = new Set<string>();
 
   for (const aggregatedItem of aggregated) {
-    const key = normalizeIngredientName(aggregatedItem.name);
-    const match = existingByName.get(key);
+    const key = aggregationKey(aggregatedItem.name, aggregatedItem.unit);
+    const match = existingByKey.get(key);
 
     if (!match) {
       upserts.push({
@@ -120,7 +209,7 @@ export function mergeShoppingList(
       continue;
     }
 
-    matchedNames.add(key);
+    matchedKeys.add(key);
     upserts.push({
       id: match.id,
       name: aggregatedItem.name,
@@ -136,8 +225,8 @@ export function mergeShoppingList(
   }
 
   const deletions: string[] = [];
-  for (const [key, item] of existingByName) {
-    if (matchedNames.has(key)) continue;
+  for (const [key, item] of existingByKey) {
+    if (matchedKeys.has(key)) continue;
     // Rule 5: drop if never hand-edited, keep (untouched) if it was.
     if (!item.quantityEdited) {
       deletions.push(item.id);

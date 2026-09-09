@@ -100,6 +100,50 @@ describe('POST /api/shopping-list/generate (AC1, AC5)', () => {
   });
 });
 
+describe('TEST-246: unit conversion at generation', () => {
+  it('AC1: two recipes needing the same ingredient in g and kg merge into one line', async () => {
+    const r1 = await createRecipe({
+      title: 'Bread',
+      steps: ['Bake'],
+      tags: [],
+      ingredients: [{ name: 'Flour', quantity: 700, unit: 'g' }],
+    });
+    const r2 = await createRecipe({
+      title: 'Cake',
+      steps: ['Bake'],
+      tags: [],
+      ingredients: [{ name: 'Flour', quantity: 0.4, unit: 'kg' }],
+    });
+
+    const res = await agent
+      .post('/api/shopping-list/generate')
+      .send({ recipeIds: [r1.id, r2.id] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0]).toMatchObject({ name: 'Flour', quantity: 1.1, unit: 'kg' });
+    expect(res.body.items[0].sourceRecipeIds.sort()).toEqual([r1.id, r2.id].sort());
+  });
+
+  it('AC2: a count unit and a mass unit on the same ingredient name stay as separate lines', async () => {
+    const r1 = await createRecipe(onionSoup); // 1 whole onion
+    const r2 = await createRecipe({
+      title: 'Onion Gratin',
+      steps: ['Bake'],
+      tags: [],
+      ingredients: [{ name: 'Onion', quantity: 150, unit: 'g' }],
+    });
+
+    const res = await agent
+      .post('/api/shopping-list/generate')
+      .send({ recipeIds: [r1.id, r2.id] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(2);
+    expect(res.body.items.map((i: { unit: string }) => i.unit).sort()).toEqual(['g', 'whole']);
+  });
+});
+
 describe('AC6: degenerate input', () => {
   it('an empty selection is a well-formed (empty, on first generation) list, not an error', async () => {
     const res = await agent.post('/api/shopping-list/generate').send({ recipeIds: [] });

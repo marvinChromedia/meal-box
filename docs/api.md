@@ -79,6 +79,19 @@ for the per-item endpoints.
 generated item), not an error. An id for a recipe that doesn't exist returns `404
 RECIPE_NOT_FOUND` and never writes anything.
 
+**Unit conversion at aggregation (TEST-246).** Two ingredients with the same name combine
+into one line if their units are identical, or both fall in the same closed-set metric
+class: mass (`g`/`kg`) or volume (`ml`/`l`) — matched case-insensitively. The combined
+quantity is shown in the larger unit once the total reaches `1000` of the smaller
+(`1000 g` → `1 kg`, `1000 ml` → `1 l`), rounded to 2 decimal places, round-half-up — the
+one rounding rule, applied everywhere a quantity is finalized. This supersedes the
+"raw sum across whatever units happen to be present" behavior described in
+[`docs/features/TEST-76-shopping-list-generation.md`](./features/TEST-76-shopping-list-generation.md).
+Anything outside that closed set (including no unit, or two different non-metric units)
+is not guessed at — those lines stay separate; it's the correct outcome (AC2), not an
+unhandled case. No imperial units, and no fuzzy/plural-aware name matching — see
+[`docs/features/TEST-246-shopping-list-unit-conversion.md`](./features/TEST-246-shopping-list-unit-conversion.md).
+
 All four mutating endpoints return the full `ShoppingList`, not just the affected item
 — the frontend reads the list as one object, so every mutation hands back its current
 state rather than a fragment the caller would have to merge itself. A `quantity` in the
