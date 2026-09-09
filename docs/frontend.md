@@ -11,7 +11,7 @@ React 18 + Vite + TypeScript (`strict: true`) + Tailwind. Mobile-responsive by d
 
 ## Types
 
-No `any`. Types come from `@recipe-box/shared` — never redefine a shape that already exists there. See [`architecture.md`](./architecture.md).
+No `any`. Types come from `@mealbox/shared` — never redefine a shape that already exists there. See [`architecture.md`](./architecture.md).
 
 ## State
 

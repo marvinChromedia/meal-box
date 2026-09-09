@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AuthCredentials } from '@recipe-box/shared';
+import type { AuthCredentials } from '@mealbox/shared';
 
 import { queryKeys } from '../../lib/api/queryKeys';
 import { authApi } from './api';

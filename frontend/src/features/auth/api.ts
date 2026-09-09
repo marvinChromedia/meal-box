@@ -1,4 +1,4 @@
-import type { AuthCredentials, User } from '@recipe-box/shared';
+import type { AuthCredentials, User } from '@mealbox/shared';
 
 import { apiRequest, ApiClientError } from '../../lib/api/http';
 

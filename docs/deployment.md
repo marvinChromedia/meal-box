@@ -36,10 +36,32 @@ Variables, all of which the template lists with no real values:
 Create the databases and apply the schema:
 
 ```bash
-createdb recipe_box_dev
-createdb recipe_box_test
+createdb mealbox_dev
+createdb mealbox_test
 npm run migrate:up -w backend
 ```
+
+### If you already had this project checked out
+
+The databases and packages were renamed from `recipe_box*` / `@recipe-box/*` to `mealbox*` / `@mealbox/*` (TEST-245). Pulling does not do either of these for you:
+
+```bash
+npm install                                    # re-link the renamed workspaces
+createdb mealbox_dev && createdb mealbox_test   # or copy your existing data, below
+npm run migrate:up -w backend
+```
+
+`backend/.env` is gitignored, so **your local one still points at the old database name** — update `DATABASE_URL` and `TEST_DATABASE_URL` to `mealbox_dev` and `mealbox_test`.
+
+To keep the development data you already had rather than starting empty:
+
+```bash
+createdb mealbox_dev --template recipe_box_dev
+```
+
+The old `recipe_box_dev` and `recipe_box_test` were deliberately left in place — nothing was dropped. Remove them yourself once you are satisfied the new ones work.
+
+Skipping `npm install` is the failure to expect: the workspace links in `node_modules` are named after the packages, so imports resolve to nothing and every test fails in a way that looks like broken code rather than a stale install.
 
 Run both packages together:
 

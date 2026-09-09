@@ -1,4 +1,4 @@
-import type { Recipe, ShoppingListItem } from '@recipe-box/shared';
+import type { Recipe, ShoppingListItem } from '@mealbox/shared';
 import { clsx } from 'clsx';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';

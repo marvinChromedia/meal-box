@@ -1,4 +1,4 @@
-import type { User } from '@recipe-box/shared';
+import type { User } from '@mealbox/shared';
 
 declare global {
   namespace Express {

@@ -1,4 +1,4 @@
-import type { GenerateShoppingListInput, ShoppingListItemInput } from '@recipe-box/shared';
+import type { GenerateShoppingListInput, ShoppingListItemInput } from '@mealbox/shared';
 import type { Request, Response } from 'express';
 import type { Pool } from 'pg';
 

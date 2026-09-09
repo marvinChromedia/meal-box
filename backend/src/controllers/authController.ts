@@ -1,4 +1,4 @@
-import type { AuthCredentials } from '@recipe-box/shared';
+import type { AuthCredentials } from '@mealbox/shared';
 import type { Request, Response } from 'express';
 import type { Pool } from 'pg';
 

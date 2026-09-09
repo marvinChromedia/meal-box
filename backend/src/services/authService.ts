@@ -1,4 +1,4 @@
-import type { AuthCredentials, User } from '@recipe-box/shared';
+import type { AuthCredentials, User } from '@mealbox/shared';
 import type { Pool } from 'pg';
 
 import { hashPassword, verifyPassword } from '../auth/passwordHash.js';

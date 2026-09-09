@@ -1,4 +1,4 @@
-import type { Recipe, RecipeInput } from '@recipe-box/shared';
+import type { Recipe, RecipeInput } from '@mealbox/shared';
 import type { Pool } from 'pg';
 
 import * as recipesRepository from '../repositories/recipesRepository.js';

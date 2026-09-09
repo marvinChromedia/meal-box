@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { ShoppingList } from '@recipe-box/shared';
+import type { ShoppingList } from '@mealbox/shared';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 

@@ -1,4 +1,4 @@
-import type { ApiError } from '@recipe-box/shared';
+import type { ApiError } from '@mealbox/shared';
 
 import { API_BASE_URL } from './config';
 import { getAuthHeaders } from './auth';

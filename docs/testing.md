@@ -32,7 +32,7 @@ grep -c "error TS" /tmp/build.txt
 Export the variable first:
 
 ```bash
-export TEST_DATABASE_URL="postgres://localhost:5432/recipe_box_test"
+export TEST_DATABASE_URL="postgres://localhost:5432/mealbox_test"
 npm test
 ```
 

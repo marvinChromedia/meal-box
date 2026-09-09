@@ -1,4 +1,4 @@
-import type { Recipe } from '@recipe-box/shared';
+import type { Recipe } from '@mealbox/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';

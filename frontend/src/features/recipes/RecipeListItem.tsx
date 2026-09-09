@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import type { Recipe } from '@recipe-box/shared';
+import type { Recipe } from '@mealbox/shared';
 import { Link } from 'react-router-dom';
 
 import { Badge } from '../../components/ui/Badge';

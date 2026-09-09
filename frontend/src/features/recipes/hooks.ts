@@ -1,4 +1,4 @@
-import type { RecipeInput } from '@recipe-box/shared';
+import type { RecipeInput } from '@mealbox/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '../../lib/api/queryKeys';

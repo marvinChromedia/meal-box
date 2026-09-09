@@ -43,7 +43,7 @@ export function DesignSystemPage() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-12">
       <header>
         <h1 className="font-display text-3xl font-bold text-ink">Design System</h1>
-        <p className="mt-1 text-ink-muted">Reusable Tailwind-based UI components for Recipe Box.</p>
+        <p className="mt-1 text-ink-muted">Reusable Tailwind-based UI components for MealBox.</p>
       </header>
 
       <Section title="Color palette">

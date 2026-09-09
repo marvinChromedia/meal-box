@@ -1,4 +1,4 @@
-import type { Recipe } from '@recipe-box/shared';
+import type { Recipe } from '@mealbox/shared';
 import { useMemo, useState } from 'react';
 
 import { useRecipes } from './hooks';

@@ -1,4 +1,4 @@
-import type { Recipe, RecipeInput } from '@recipe-box/shared';
+import type { Recipe, RecipeInput } from '@mealbox/shared';
 
 import { API_MODE } from '../../lib/api/config';
 import { apiRequest } from '../../lib/api/http';

@@ -1,4 +1,4 @@
-# Recipe Box + Shopping List
+# MealBox
 
 Personal recipe box + shopping list app. Save recipes, generate a de-duplicated shopping list from them. Tracked as Beacon ticket [`TEST-71`](https://beacon.chro.media/browse/TEST-71); conventions live in [`CLAUDE.md`](./CLAUDE.md).
 
@@ -12,7 +12,7 @@ Personal recipe box + shopping list app. Save recipes, generate a de-duplicated 
 
 ```bash
 npm install
-createdb recipe_box_dev
+createdb mealbox_dev
 cp backend/.env.example backend/.env
 ```
 

@@ -1,5 +1,5 @@
 {
-  "name": "@recipe-box/frontend",
+  "name": "@mealbox/frontend",
   "private": true,
   "type": "module",
   "version": "0.0.0",
@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@recipe-box/shared": "*",
+    "@mealbox/shared": "*",
     "@tanstack/react-query": "^5.102.8",
     "clsx": "^2.1.1",
     "react": "^18.3.1",

@@ -1,4 +1,4 @@
-import type { Recipe } from '@recipe-box/shared';
+import type { Recipe } from '@mealbox/shared';
 import { describe, expect, it } from 'vitest';
 
 import { aggregateIngredients } from '../../src/services/shoppingListService.js';

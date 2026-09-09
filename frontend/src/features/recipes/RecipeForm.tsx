@@ -1,4 +1,4 @@
-import type { Recipe } from '@recipe-box/shared';
+import type { Recipe } from '@mealbox/shared';
 import type { FormEvent } from 'react';
 import { useReducer } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';

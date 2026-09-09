@@ -5,7 +5,7 @@ import type {
   Recipe,
   ShoppingList,
   ShoppingListItemInput,
-} from '@recipe-box/shared';
+} from '@mealbox/shared';
 import type { Pool } from 'pg';
 
 import * as recipesRepository from '../repositories/recipesRepository.js';

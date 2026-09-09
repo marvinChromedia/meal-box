@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { User } from '@recipe-box/shared';
+import type { User } from '@mealbox/shared';
 import { z } from 'zod';
 
 import type { Queryable } from '../db/queryable.js';

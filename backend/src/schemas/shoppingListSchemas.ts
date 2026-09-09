@@ -1,4 +1,4 @@
-import type { GenerateShoppingListInput, ShoppingListItemInput } from '@recipe-box/shared';
+import type { GenerateShoppingListInput, ShoppingListItemInput } from '@mealbox/shared';
 import { z } from 'zod';
 
 export const generateShoppingListInputSchema = z

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GenerateShoppingListInput } from '@recipe-box/shared';
+import type { GenerateShoppingListInput } from '@mealbox/shared';
 
 import { useGenerateShoppingList, useShoppingList } from '../shopping-list/hooks';
 

@@ -1,4 +1,4 @@
-import type { RecipeInput } from '@recipe-box/shared';
+import type { RecipeInput } from '@mealbox/shared';
 import { Pool } from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 

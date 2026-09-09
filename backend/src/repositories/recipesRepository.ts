@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { Recipe, RecipeInput } from '@recipe-box/shared';
+import type { Recipe, RecipeInput } from '@mealbox/shared';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 

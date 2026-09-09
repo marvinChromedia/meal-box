@@ -1,4 +1,4 @@
-import type { Recipe, ShoppingListItem } from '@recipe-box/shared';
+import type { Recipe, ShoppingListItem } from '@mealbox/shared';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,4 +1,4 @@
-import type { Recipe, RecipeInput } from '@recipe-box/shared';
+import type { Recipe, RecipeInput } from '@mealbox/shared';
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 

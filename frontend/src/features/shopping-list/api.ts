@@ -3,7 +3,7 @@ import type {
   ShoppingList,
   ShoppingListItem,
   ShoppingListItemInput,
-} from '@recipe-box/shared';
+} from '@mealbox/shared';
 
 import { API_MODE } from '../../lib/api/config';
 import { apiRequest } from '../../lib/api/http';

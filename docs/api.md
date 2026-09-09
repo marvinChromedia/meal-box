@@ -20,7 +20,7 @@ Full CRUD, mounted in `backend/src/app.ts` and routed in `backend/src/routes/rec
 | `PUT`    | `/api/recipes/:id` | Replaces the ingredient set rather than patching rows — the frontend form matches this  |
 | `DELETE` | `/api/recipes/:id` | Reports whether a row existed; ingredient rows cascade                                  |
 
-Bodies go through `validateBody`, params through `validateParams`, and the boundary schemas are tied to `@recipe-box/shared`'s `RecipeInput` with `satisfies` so they cannot drift from the contract.
+Bodies go through `validateBody`, params through `validateParams`, and the boundary schemas are tied to `@mealbox/shared`'s `RecipeInput` with `satisfies` so they cannot drift from the contract.
 
 Validation requires a non-empty title, at least one step and at least one ingredient. Tags may be empty, and unit may be empty because units are free text — a countable "2 onions" has no unit. The frontend form applies the same rules.
 
@@ -90,9 +90,9 @@ later regeneration will not recalculate it, and bumps the list's own `updatedAt`
 
 **Layering.** route → controller → service → repository. Controllers parse, validate and shape; they hold no business logic and no SQL. See [`backend.md`](./backend.md).
 
-**Validation.** Every body and parameter is validated with Zod at the boundary. Invalid input is rejected with `400` before any service or database code runs. Request bodies use the input DTOs from `@recipe-box/shared` — `RecipeInput`, `GenerateShoppingListInput`, `ShoppingListItemInput` — which deliberately omit server-generated fields.
+**Validation.** Every body and parameter is validated with Zod at the boundary. Invalid input is rejected with `400` before any service or database code runs. Request bodies use the input DTOs from `@mealbox/shared` — `RecipeInput`, `GenerateShoppingListInput`, `ShoppingListItemInput` — which deliberately omit server-generated fields.
 
-**Responses.** Return the shapes from `@recipe-box/shared`. Do not define a response type locally.
+**Responses.** Return the shapes from `@mealbox/shared`. Do not define a response type locally.
 
 **Errors.** One shape everywhere:
 

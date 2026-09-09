@@ -1,4 +1,4 @@
-import type { RecipeInput } from '@recipe-box/shared';
+import type { RecipeInput } from '@mealbox/shared';
 
 // TEST-254: seeded into every new account's recipe box at signup. Written
 // directly for this ticket — not copied from any specific site — so a

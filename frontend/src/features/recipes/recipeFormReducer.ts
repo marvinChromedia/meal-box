@@ -1,4 +1,4 @@
-import type { Recipe } from '@recipe-box/shared';
+import type { Recipe } from '@mealbox/shared';
 
 let nextKey = 0;
 function makeKey(): string {

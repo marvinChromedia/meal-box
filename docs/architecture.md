@@ -5,17 +5,17 @@ npm workspaces monorepo, three packages, each independently runnable or importab
 ```text
 frontend/   Vite + React 18 + TypeScript (strict) + Tailwind
 backend/    Express + TypeScript (strict) + PostgreSQL via pg
-shared/     @recipe-box/shared — types crossing the frontend/backend boundary
+shared/     @mealbox/shared — types crossing the frontend/backend boundary
 docs/       Written reference (this directory)
 ```
 
-Both `frontend/` and `backend/` declare `@recipe-box/shared` as a workspace dependency and have their own `package.json` and `tsconfig.json`, extending the root ESLint and Prettier config.
+Both `frontend/` and `backend/` declare `@mealbox/shared` as a workspace dependency and have their own `package.json` and `tsconfig.json`, extending the root ESLint and Prettier config.
 
 ## The contract seam
 
 `shared/src/types.ts` is the single source of truth for every shape that crosses the boundary: `Recipe`, `Ingredient`, `ShoppingList`, `ShoppingListItem`, `User`, the input DTOs that omit server-generated fields (`RecipeInput`, `IngredientInput`, `ShoppingListItemInput`, `GenerateShoppingListInput`, `AuthCredentials`) and the `ApiError` envelope.
 
-Import from `@recipe-box/shared`. Never redefine those shapes locally — that is the one thing that breaks parallel development, because two branches then disagree about the same data.
+Import from `@mealbox/shared`. Never redefine those shapes locally — that is the one thing that breaks parallel development, because two branches then disagree about the same data.
 
 The file is owned by the PM session. Changes to it go through that session.
 

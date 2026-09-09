@@ -1,4 +1,4 @@
-import type { GenerateShoppingListInput, ShoppingList, ShoppingListItem, ShoppingListItemInput } from '@recipe-box/shared';
+import type { GenerateShoppingListInput, ShoppingList, ShoppingListItem, ShoppingListItemInput } from '@mealbox/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { ApiClientError } from '../../lib/api/http';
