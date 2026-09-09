@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { PageHeader } from '../../components/layout/PageHeader';
+import { Alert } from '../../components/ui/Alert';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -9,6 +10,8 @@ import { ErrorState } from '../../components/ui/ErrorState';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { Modal } from '../../components/ui/Modal';
 import { ApiClientError } from '../../lib/api/http';
+import { GenerateConfirmationModal } from '../recipe-selection/GenerateConfirmationModal';
+import { useGenerateShoppingListFlow } from '../recipe-selection/useGenerateShoppingListFlow';
 import { useDeleteRecipe, useRecipe } from './hooks';
 
 function RecipeNotFound({ message }: { message: string }) {
@@ -32,7 +35,17 @@ export function RecipeDetail() {
   const navigate = useNavigate();
   const query = useRecipe(id ?? '');
   const deleteRecipe = useDeleteRecipe();
+  // Uses the route param, not recipe.id, so this hook can be called
+  // unconditionally before the early returns below (Rules of Hooks) — the
+  // fetched recipe's id always equals id once query succeeds.
+  const generateFlow = useGenerateShoppingListFlow({ recipeIds: id ? [id] : [] });
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (generateFlow.isGenerated) {
+      navigate('/shopping-list');
+    }
+  }, [generateFlow.isGenerated, navigate]);
 
   if (!id) {
     return <RecipeNotFound message="No recipe was specified." />;
@@ -71,6 +84,9 @@ export function RecipeDetail() {
         title={recipe.title}
         actions={
           <>
+            <Button size="sm" onClick={generateFlow.requestGenerate} disabled={generateFlow.isGenerating}>
+              {generateFlow.isGenerating ? 'Adding…' : 'Add to shopping list'}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/recipes/${recipe.id}/edit`)}>
               Edit
             </Button>
@@ -79,6 +95,18 @@ export function RecipeDetail() {
             </Button>
           </>
         }
+      />
+
+      {generateFlow.generateError ? (
+        <Alert variant="danger" title="Couldn't add to the list">
+          <p>{generateFlow.generateError.message}</p>
+        </Alert>
+      ) : null}
+
+      <GenerateConfirmationModal
+        open={generateFlow.isConfirmOpen}
+        onConfirm={generateFlow.confirmGenerate}
+        onCancel={generateFlow.cancelGenerate}
       />
 
       {recipe.tags.length > 0 ? (
@@ -91,10 +119,13 @@ export function RecipeDetail() {
 
       <section>
         <h2 className="font-display text-lg font-semibold text-ink">Ingredients</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-muted">
+        <ul className="mt-2 divide-y divide-line">
           {recipe.ingredients.map((ingredient) => (
-            <li key={ingredient.id}>
-              {ingredient.quantity} {ingredient.unit} {ingredient.name}
+            <li key={ingredient.id} className="flex flex-wrap items-baseline gap-x-2 py-2 text-sm">
+              <span className="font-medium text-ink">
+                {ingredient.quantity} {ingredient.unit}
+              </span>{' '}
+              <span className="text-ink-muted">{ingredient.name}</span>
             </li>
           ))}
         </ul>
@@ -102,9 +133,11 @@ export function RecipeDetail() {
 
       <section>
         <h2 className="font-display text-lg font-semibold text-ink">Steps</h2>
-        <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm text-ink-muted">
+        <ol className="mt-3 list-decimal space-y-4 pl-6 marker:font-display marker:font-semibold marker:text-accent">
           {recipe.steps.map((step, index) => (
-            <li key={index}>{step}</li>
+            <li key={index} className="pl-1 text-sm text-ink-muted">
+              {step}
+            </li>
           ))}
         </ol>
       </section>

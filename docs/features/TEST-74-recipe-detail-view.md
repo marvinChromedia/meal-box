@@ -46,3 +46,24 @@ Unlike TEST-73 (built before TEST-157 landed, and still on `Alert` with a tracke
 ## Deferred: Playwright E2E → TEST-232
 
 Same situation as TEST-73: this ticket's Definition of Done calls for a Playwright spec (open a recipe, delete it with confirmation, verify it's gone from the list). No E2E framework is installed. Per CLAUDE.md §9's third case — this layer applies and cannot be written yet, not "not applicable." **Deferred to [TEST-232](https://beacon.chro.media/browse/TEST-232)**, which already carries this ticket in its debt list; confirm the addition lands there alongside TEST-73's before treating this as settled.
+
+## TEST-260 — ingredient/step display polish, "Add to shopping list"
+
+Two additive changes, no backend touched.
+
+**Ingredients** — went from a plain `list-disc` `<ul>` to divider-separated rows (`divide-y divide-line`), quantity+unit visually distinct (`font-medium text-ink`) from the ingredient name (`text-ink-muted`). Stayed inside a real `<ul>`/`<li>` — still semantic, per this doc's own Accessibility section above.
+
+**Steps** — kept the native `<ol>` (numbering stays out of the DOM), styled the browser-generated counter via Tailwind's `marker:` variant (`marker:font-display marker:font-semibold marker:text-accent`) instead of injecting a custom numbered badge into each `<li>`. `::marker` is a pseudo-element — invisible to `textContent` and to Testing Library — so the existing exact-match steps assertion needed no change. Confirmed this by running the tests, not just reasoning about it; the ingredient change did require a real test fix (below), which is the one place the initial assumption was wrong.
+
+**"Add to shopping list" button** — reuses `useGenerateShoppingListFlow`/`GenerateConfirmationModal`, the exact same infrastructure `RecipeBox.tsx`'s multi-select flow already uses, called here with a single-recipe array (`{ recipeIds: [recipe.id] }`). No new plumbing: confirmed both were fully generic before reusing them. Behaves identically to `RecipeBox.tsx`'s flow — generates immediately and navigates to `/shopping-list` when the account has no list yet; opens `GenerateConfirmationModal` first (warning that generating merges rather than wipes) when one already exists.
+
+### A real test-fix, and why it's not a weakening
+
+The existing ingredient assertion (`screen.getByText(/200 g Spaghetti/)`) assumed RTL's `getByText` would match a regex against an element's full concatenated text even when that text is split across sibling `<span>`s with a literal space between them. That's wrong — confirmed by a real failing run ("text is broken up by multiple elements... provide a function for your text matcher"). Fixed by asserting each span's own text individually (`'200 g'`, `'Spaghetti'`, `'3 clove'`, `'Garlic'`) — a like-for-like adjustment for markup that's now intentionally two elements instead of one, not a weaker assertion.
+
+### Verified
+
+- `npm run test -w frontend`: 25 files, 136 tests (up from 134), exit 0. Two new tests cover the button's two paths (no list yet → immediate generate + navigate; existing list → confirmation modal → Generate → navigate), mocked the same way `RecipeBox.test.tsx` already mocks this flow.
+- `npm run lint` / `npm run build`: exit 0, both workspaces.
+- Manual, real dev server against a live account (fresh registration, TEST-254's seeded recipes): viewed Chicken Adobo's detail page at 375px and desktop width — ingredient rows and step spacing/numbering read cleanly, no horizontal scroll; clicked "Add to shopping list" against an account that already had a list, got the merge-warning modal, confirmed it generates and navigates to `/shopping-list` with the recipe's ingredients present.
+- No backend change, so no backend tests changed. `docs/api.md` / `docs/architecture.md` not touched — no endpoint or layer added.

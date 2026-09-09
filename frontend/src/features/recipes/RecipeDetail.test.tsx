@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiClientError } from '../../lib/api/http';
+import { shoppingListApi } from '../shopping-list/api';
 import { recipesApi } from './api';
 import { RecipeDetail } from './RecipeDetail';
 
@@ -21,6 +22,7 @@ function renderRecipeDetail(path: string) {
     <Routes>
       <Route path="/recipes/:id" element={<RecipeDetail />} />
       <Route path="/recipes" element={<div>Recipe Box Page</div>} />
+      <Route path="/shopping-list" element={<p>Shopping list page</p>} />
     </Routes>,
     { wrapper },
   );
@@ -38,8 +40,13 @@ describe('RecipeDetail (against the typed mock)', () => {
       expect(screen.getByRole('heading', { name: 'Garlic Butter Pasta' })).toBeInTheDocument(),
     );
 
-    expect(screen.getByText(/200 g Spaghetti/)).toBeInTheDocument();
-    expect(screen.getByText(/3 clove Garlic/)).toBeInTheDocument();
+    // Quantity/unit and name render as separate elements (TEST-260 — quantity
+    // visually distinct from the name), so each is checked individually rather
+    // than as one combined string.
+    expect(screen.getByText('200 g')).toBeInTheDocument();
+    expect(screen.getByText('Spaghetti')).toBeInTheDocument();
+    expect(screen.getByText('3 clove')).toBeInTheDocument();
+    expect(screen.getByText('Garlic')).toBeInTheDocument();
 
     const steps = screen.getAllByRole('listitem').map((el) => el.textContent);
     expect(steps).toEqual(
@@ -50,6 +57,38 @@ describe('RecipeDetail (against the typed mock)', () => {
     expect(stepsList).not.toBeNull();
     const ingredientsList = screen.getByText(/Spaghetti/).closest('ul');
     expect(ingredientsList).not.toBeNull();
+  });
+
+  it('adds this recipe to the shopping list and moves to that screen, when none exists yet (AC3, TEST-260)', async () => {
+    vi.spyOn(shoppingListApi, 'get').mockRejectedValueOnce(
+      new ApiClientError('No shopping list yet', 'SHOPPING_LIST_NOT_FOUND', 404),
+    );
+
+    renderRecipeDetail('/recipes/recipe-1');
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Garlic Butter Pasta' })).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /add to shopping list/i }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Shopping list page')).toBeInTheDocument());
+  });
+
+  it('warns before adding to an existing shopping list, describing the merge rather than a wipe (AC4, TEST-260)', async () => {
+    renderRecipeDetail('/recipes/recipe-1');
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Garlic Butter Pasta' })).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /add to shopping list/i }));
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/already have a shopping list/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+    await waitFor(() => expect(screen.getByText('Shopping list page')).toBeInTheDocument());
   });
 
   it('confirms before deleting, then removes the recipe and returns to the box (AC3)', async () => {
