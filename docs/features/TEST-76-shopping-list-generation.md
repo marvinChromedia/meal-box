@@ -122,3 +122,38 @@ UPDATE`, which handles both a new item and an update to an existing one with the
 93 tests total across the three layers (40 unit, 18 contract, 35 integration —
 `npm run test:unit` / `test:contract` / `test:integration` in `backend/`, or `npm test`
 for all three in sequence). `tsc` build clean, ESLint clean, Prettier clean.
+
+## Reopened: "Couldn't generate the list — internal server error"
+
+A real user report against the running dev environment: every call to `POST
+/api/shopping-list/generate` returned a 500. **Root cause was not a code defect** — the
+code above has been correct and unchanged in this respect since it shipped, and the
+automated integration suite (`shoppingListApi.integration.test.ts`, which exercises
+`quantity_edited` on every regeneration-rule test) had been green throughout. The
+problem was that the shared local dev database (`recipe_box_dev`) had drifted from the
+migrations directory: its `pgmigrations` ledger recorded an *earlier, differently-named*
+users/sessions migration (`20260908150000_create_users_and_sessions_tables`) instead of
+the one actually on disk (`20260908200000_...`, functionally equivalent — the tables it
+creates already existed), and as a direct consequence, `20260908190000_add_quantity_edited_to_shopping_list_items`
+had **never been applied** to that database at all. `shopping_list_items.quantity_edited`
+genuinely did not exist there — confirmed directly via `\d shopping_list_items` — so
+every query in `getCurrentShoppingListForMerge`/`applyShoppingListMerge` that references
+it threw `column "quantity_edited" does not exist`, an unhandled exception that `app.ts`'s
+catch-all turned into the generic 500 the user saw.
+
+**Fix**: reconciled `recipe_box_dev` directly — `ALTER TABLE shopping_list_items ADD
+COLUMN quantity_edited boolean NOT NULL DEFAULT false` (the exact effect of the missing
+migration) plus a matching `pgmigrations` row, in one transaction, with explicit
+confirmation before touching the shared database. Verified against the real server: a
+freshly-registered account's three TEST-254 default recipes generated a shopping list
+successfully over real HTTP (`200`, ingredients correctly combined — e.g. "Cooking oil"
+summed to `8` across all three recipes), where the identical call had 500'd before the
+fix.
+
+**No source or test changes accompany this fix.** The application code was never wrong;
+nothing here is a gap the existing suite would have missed for a real code regression —
+`recipe_box_test` (what the suite actually runs against) is freshly migrated on every
+run and never carried this drift, which is exactly why the tests stayed green the whole
+time this was broken in the dev environment. The lesson is the one `docs/backend.md`
+already states about the shared dev database being a real hazard — this incident is a
+concrete instance of it, not a new rule.
