@@ -6,7 +6,11 @@ import { createRecipesController } from '../controllers/recipesController.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { requireOwner } from '../middleware/requireOwner.js';
 import * as recipesService from '../services/recipesService.js';
-import { recipeIdParamSchema, recipeInputSchema } from '../schemas/recipeSchemas.js';
+import {
+  recipeFavoriteInputSchema,
+  recipeIdParamSchema,
+  recipeInputSchema,
+} from '../schemas/recipeSchemas.js';
 import { validateBody, validateParams } from '../middleware/validate.js';
 
 export function createRecipesRouter(pool: Pool): Router {
@@ -29,6 +33,13 @@ export function createRecipesRouter(pool: Pool): Router {
     requireOwner(getOwnerId),
     validateBody(recipeInputSchema),
     asyncHandler(controller.updateRecipe),
+  );
+  router.patch(
+    '/:id',
+    validateParams(recipeIdParamSchema),
+    requireOwner(getOwnerId),
+    validateBody(recipeFavoriteInputSchema),
+    asyncHandler(controller.setFavorite),
   );
   router.delete(
     '/:id',

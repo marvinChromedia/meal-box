@@ -25,9 +25,11 @@ export interface RecipeSelectionState {
 export function RecipeListItem({
   recipe,
   selection,
+  onToggleFavorite,
 }: {
   recipe: Recipe;
   selection?: RecipeSelectionState;
+  onToggleFavorite?: (recipe: Recipe) => void;
 }) {
   const card = (
     <Card
@@ -36,7 +38,28 @@ export function RecipeListItem({
         selection?.selected && 'ring-2 ring-accent',
       )}
     >
-      <CardHeader>{recipe.title}</CardHeader>
+      <CardHeader className="flex items-start justify-between gap-2">
+        <span>{recipe.title}</span>
+        {onToggleFavorite ? (
+          <button
+            type="button"
+            aria-pressed={recipe.isFavorite}
+            aria-label={recipe.isFavorite ? `Unfavorite ${recipe.title}` : `Favorite ${recipe.title}`}
+            className={clsx(
+              'relative z-10 -m-1 shrink-0 rounded-md p-1 text-xl leading-none',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
+              recipe.isFavorite ? 'text-accent' : 'text-ink-subtle',
+            )}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onToggleFavorite(recipe);
+            }}
+          >
+            {recipe.isFavorite ? '★' : '☆'}
+          </button>
+        ) : null}
+      </CardHeader>
       <CardBody>
         <p>
           {recipe.ingredients.length} ingredient{recipe.ingredients.length === 1 ? '' : 's'} ·{' '}

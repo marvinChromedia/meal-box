@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { recipeIdParamSchema, recipeInputSchema } from '../../src/schemas/recipeSchemas.js';
+import {
+  recipeFavoriteInputSchema,
+  recipeIdParamSchema,
+  recipeInputSchema,
+} from '../../src/schemas/recipeSchemas.js';
 
 const validInput = {
   title: 'Tomato Soup',
@@ -71,5 +75,26 @@ describe('recipeIdParamSchema (AC6: malformed id)', () => {
 
   it('rejects a non-uuid id', () => {
     expect(recipeIdParamSchema.safeParse({ id: 'not-a-uuid' }).success).toBe(false);
+  });
+});
+
+describe('recipeFavoriteInputSchema (TEST-123)', () => {
+  it('accepts a valid boolean', () => {
+    expect(recipeFavoriteInputSchema.safeParse({ isFavorite: true }).success).toBe(true);
+    expect(recipeFavoriteInputSchema.safeParse({ isFavorite: false }).success).toBe(true);
+  });
+
+  it('rejects a missing isFavorite field', () => {
+    expect(recipeFavoriteInputSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('rejects a non-boolean isFavorite', () => {
+    expect(recipeFavoriteInputSchema.safeParse({ isFavorite: 'true' }).success).toBe(false);
+  });
+
+  it('rejects an unknown field', () => {
+    expect(
+      recipeFavoriteInputSchema.safeParse({ isFavorite: true, title: 'sneaky' }).success,
+    ).toBe(false);
   });
 });

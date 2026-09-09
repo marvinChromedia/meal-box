@@ -124,6 +124,76 @@ describe('PUT /api/recipes/:id (AC3)', () => {
   });
 });
 
+describe('PATCH /api/recipes/:id (TEST-123)', () => {
+  it('sets isFavorite true and then false', async () => {
+    const created = await agent.post('/api/recipes').send(sampleInput);
+
+    const favoritedRes = await agent
+      .patch(`/api/recipes/${created.body.id}`)
+      .send({ isFavorite: true });
+    expect(favoritedRes.status).toBe(200);
+    expect(favoritedRes.body.isFavorite).toBe(true);
+
+    const unfavoritedRes = await agent
+      .patch(`/api/recipes/${created.body.id}`)
+      .send({ isFavorite: false });
+    expect(unfavoritedRes.status).toBe(200);
+    expect(unfavoritedRes.body.isFavorite).toBe(false);
+  });
+
+  it('survives an unrelated PUT edit — PUT never writes is_favorite', async () => {
+    const created = await agent.post('/api/recipes').send(sampleInput);
+    await agent.patch(`/api/recipes/${created.body.id}`).send({ isFavorite: true });
+
+    const updateRes = await agent.put(`/api/recipes/${created.body.id}`).send({
+      ...sampleInput,
+      title: 'Tomato Soup (updated)',
+    });
+
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.isFavorite).toBe(true);
+  });
+
+  it('rejects a non-boolean body with 400', async () => {
+    const created = await agent.post('/api/recipes').send(sampleInput);
+
+    const res = await agent
+      .patch(`/api/recipes/${created.body.id}`)
+      .send({ isFavorite: 'yes' });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: { message: expect.any(String), code: 'VALIDATION_ERROR' } });
+  });
+
+  it('returns 404 for an id that does not exist', async () => {
+    const res = await agent
+      .patch('/api/recipes/11111111-1111-1111-1111-111111111111')
+      .send({ isFavorite: true });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 favoriting another account's recipe, and does not change it (TEST-253)", async () => {
+    const created = await agent.post('/api/recipes').send(sampleInput);
+
+    const otherAgent = request.agent(app);
+    await otherAgent
+      .post('/api/auth/register')
+      .send({ email: 'someone-else-2@example.com', password: 'password123' });
+    await otherAgent
+      .post('/api/auth/login')
+      .send({ email: 'someone-else-2@example.com', password: 'password123' });
+
+    const patchRes = await otherAgent
+      .patch(`/api/recipes/${created.body.id}`)
+      .send({ isFavorite: true });
+    expect(patchRes.status).toBe(404);
+
+    const reread = await agent.get(`/api/recipes/${created.body.id}`);
+    expect(reread.body.isFavorite).toBe(false);
+  });
+});
+
 describe('DELETE /api/recipes/:id (AC4)', () => {
   it('deletes a recipe, its ingredients, and 404s on a subsequent read', async () => {
     const created = await agent.post('/api/recipes').send(sampleInput);

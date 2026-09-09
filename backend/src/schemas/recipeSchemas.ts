@@ -25,3 +25,12 @@ export const recipeIdParamSchema = z
     id: z.string().uuid(),
   })
   .strict();
+
+// Deliberately separate from recipeInputSchema: PUT never writes is_favorite
+// (TEST-123 owns that column exclusively), so this is the only schema that
+// accepts it.
+export const recipeFavoriteInputSchema = z
+  .object({
+    isFavorite: z.boolean(),
+  })
+  .strict();

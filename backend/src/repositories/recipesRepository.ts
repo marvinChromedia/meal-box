@@ -138,6 +138,21 @@ export async function updateRecipe(
   });
 }
 
+export async function setRecipeFavorite(
+  db: Queryable,
+  id: string,
+  isFavorite: boolean,
+): Promise<Recipe | null> {
+  const updateResult = await db.query(
+    `UPDATE recipes SET is_favorite = $2, updated_at = now() WHERE id = $1`,
+    [id, isFavorite],
+  );
+  if (updateResult.rowCount === 0) {
+    return null;
+  }
+  return getRecipeById(db, id);
+}
+
 export async function deleteRecipe(db: Queryable, id: string): Promise<boolean> {
   const result = await db.query('DELETE FROM recipes WHERE id = $1', [id]);
   return (result.rowCount ?? 0) > 0;

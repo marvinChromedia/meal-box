@@ -28,6 +28,14 @@ export async function updateRecipe(
   return recipesRepository.updateRecipe(pool, id, input);
 }
 
+export async function setFavorite(
+  pool: Pool,
+  id: string,
+  isFavorite: boolean,
+): Promise<Recipe | null> {
+  return recipesRepository.setRecipeFavorite(pool, id, isFavorite);
+}
+
 export async function deleteRecipe(pool: Pool, id: string): Promise<boolean> {
   return recipesRepository.deleteRecipe(pool, id);
 }

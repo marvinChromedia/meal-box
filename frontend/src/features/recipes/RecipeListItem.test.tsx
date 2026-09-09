@@ -94,3 +94,73 @@ describe('RecipeListItem outside selection mode', () => {
     expect(link.className).not.toContain('ring-blue-500');
   });
 });
+
+describe('RecipeListItem favorite star (TEST-123)', () => {
+  it('renders no star when onToggleFavorite is not provided', () => {
+    render(
+      <MemoryRouter>
+        <RecipeListItem recipe={recipe} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('renders an unfavorited star, aria-pressed false', () => {
+    render(
+      <MemoryRouter>
+        <RecipeListItem recipe={recipe} onToggleFavorite={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    const star = screen.getByRole('button', { name: 'Favorite Garlic Butter Pasta' });
+    expect(star).toHaveAttribute('aria-pressed', 'false');
+    expect(star).toHaveTextContent('☆');
+  });
+
+  it('renders a favorited star, aria-pressed true', () => {
+    render(
+      <MemoryRouter>
+        <RecipeListItem recipe={{ ...recipe, isFavorite: true }} onToggleFavorite={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    const star = screen.getByRole('button', { name: 'Unfavorite Garlic Butter Pasta' });
+    expect(star).toHaveAttribute('aria-pressed', 'true');
+    expect(star).toHaveTextContent('★');
+  });
+
+  it('clicking the star calls onToggleFavorite with the recipe, without navigating', () => {
+    const onToggleFavorite = vi.fn();
+    render(
+      <MemoryRouter>
+        <RecipeListItem recipe={recipe} onToggleFavorite={onToggleFavorite} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Favorite Garlic Butter Pasta' }));
+
+    expect(onToggleFavorite).toHaveBeenCalledOnce();
+    expect(onToggleFavorite).toHaveBeenCalledWith(recipe);
+  });
+
+  it('clicking the star in selection mode toggles favorite, not selection', () => {
+    const onToggle = vi.fn();
+    const onToggleFavorite = vi.fn();
+    render(
+      <MemoryRouter>
+        <RecipeListItem
+          recipe={recipe}
+          selection={{ selected: false, onToggle }}
+          onToggleFavorite={onToggleFavorite}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Favorite Garlic Butter Pasta' }));
+
+    expect(onToggleFavorite).toHaveBeenCalledOnce();
+    expect(onToggleFavorite).toHaveBeenCalledWith(recipe);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+});

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Alert } from '../../components/ui/Alert';
 import { Button } from '../../components/ui/Button';
+import { Checkbox } from '../../components/ui/Checkbox';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Input } from '../../components/ui/Input';
@@ -12,14 +13,18 @@ import { GenerateConfirmationModal } from '../recipe-selection/GenerateConfirmat
 import { HiddenSelectionSummary } from '../recipe-selection/HiddenSelectionSummary';
 import { useGenerateShoppingListFlow } from '../recipe-selection/useGenerateShoppingListFlow';
 import { useRecipeSelection } from '../recipe-selection/useRecipeSelection';
+import { useSetFavorite } from './hooks';
 import { RecipeListItem } from './RecipeListItem';
 import { useRecipeSearch } from './useRecipeSearch';
 
 export function RecipeBox() {
   const navigate = useNavigate();
-  const { query, searchTerm, setSearchTerm, filteredRecipes } = useRecipeSearch();
+  const { query, searchTerm, setSearchTerm, favoritesOnly, setFavoritesOnly, filteredRecipes } =
+    useRecipeSearch();
   const selection = useRecipeSelection();
   const generateFlow = useGenerateShoppingListFlow({ recipeIds: selection.selectedIds });
+  const setFavorite = useSetFavorite();
+  const hasAnyFavorite = (query.data ?? []).some((recipe) => recipe.isFavorite);
 
   const filteredIds = filteredRecipes.map((recipe) => recipe.id);
   const allVisibleSelected =
@@ -70,6 +75,12 @@ export function RecipeBox() {
         className="w-full"
         value={searchTerm}
         onChange={(event) => setSearchTerm(event.target.value)}
+      />
+
+      <Checkbox
+        label="Favorites only"
+        checked={favoritesOnly}
+        onChange={(event) => setFavoritesOnly(event.target.checked)}
       />
 
       {selection.isSelectionMode ? (
@@ -138,10 +149,24 @@ export function RecipeBox() {
         />
       ) : query.data.length === 0 ? (
         <EmptyState title="No recipes yet" description="Save your first recipe to see it here." />
+      ) : filteredRecipes.length === 0 && favoritesOnly && !hasAnyFavorite ? (
+        <EmptyState
+          title="No favorites yet"
+          description="Tap the star on a recipe to add it to your favorites."
+          action={
+            <Button variant="outline" size="sm" onClick={() => setFavoritesOnly(false)}>
+              Show all recipes
+            </Button>
+          }
+        />
       ) : filteredRecipes.length === 0 ? (
         <EmptyState
           title="No matches"
-          description={`No recipes match "${searchTerm}".`}
+          description={
+            favoritesOnly
+              ? `No favorited recipes match "${searchTerm}".`
+              : `No recipes match "${searchTerm}".`
+          }
           action={
             <Button variant="outline" size="sm" onClick={() => setSearchTerm('')}>
               Clear search
@@ -162,6 +187,7 @@ export function RecipeBox() {
                       }
                     : undefined
                 }
+                onToggleFavorite={(r) => setFavorite.mutate({ id: r.id, isFavorite: !r.isFavorite })}
               />
             </li>
           ))}

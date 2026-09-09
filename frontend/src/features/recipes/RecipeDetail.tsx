@@ -1,3 +1,4 @@
+import { clsx } from 'clsx';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
@@ -12,7 +13,7 @@ import { Modal } from '../../components/ui/Modal';
 import { ApiClientError } from '../../lib/api/http';
 import { GenerateConfirmationModal } from '../recipe-selection/GenerateConfirmationModal';
 import { useGenerateShoppingListFlow } from '../recipe-selection/useGenerateShoppingListFlow';
-import { useDeleteRecipe, useRecipe } from './hooks';
+import { useDeleteRecipe, useRecipe, useSetFavorite } from './hooks';
 
 function RecipeNotFound({ message }: { message: string }) {
   return (
@@ -35,6 +36,7 @@ export function RecipeDetail() {
   const navigate = useNavigate();
   const query = useRecipe(id ?? '');
   const deleteRecipe = useDeleteRecipe();
+  const setFavorite = useSetFavorite();
   // Uses the route param, not recipe.id, so this hook can be called
   // unconditionally before the early returns below (Rules of Hooks) — the
   // fetched recipe's id always equals id once query succeeds.
@@ -84,6 +86,19 @@ export function RecipeDetail() {
         title={recipe.title}
         actions={
           <>
+            <button
+              type="button"
+              aria-pressed={recipe.isFavorite}
+              aria-label={recipe.isFavorite ? `Unfavorite ${recipe.title}` : `Favorite ${recipe.title}`}
+              className={clsx(
+                'rounded-md p-2 text-xl leading-none',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
+                recipe.isFavorite ? 'text-accent' : 'text-ink-subtle',
+              )}
+              onClick={() => setFavorite.mutate({ id: recipe.id, isFavorite: !recipe.isFavorite })}
+            >
+              {recipe.isFavorite ? '★' : '☆'}
+            </button>
             <Button size="sm" onClick={generateFlow.requestGenerate} disabled={generateFlow.isGenerating}>
               {generateFlow.isGenerating ? 'Adding…' : 'Add to shopping list'}
             </Button>

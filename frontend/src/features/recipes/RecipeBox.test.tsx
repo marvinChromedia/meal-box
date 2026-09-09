@@ -1,12 +1,13 @@
+import type { Recipe } from '@mealbox/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiClientError } from '../../lib/api/http';
 import { shoppingListApi } from '../shopping-list/api';
-import { recipesApi } from './api';
+import { __resetMockRecipesForTests, recipesApi } from './api';
 import { RecipeBox } from './RecipeBox';
 
 function renderRecipeBox() {
@@ -27,6 +28,10 @@ function renderRecipeBox() {
   );
   return render(<RecipeBox />, { wrapper });
 }
+
+beforeEach(() => {
+  __resetMockRecipesForTests();
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -115,6 +120,97 @@ describe('RecipeBox (against the typed mock, per TEST-155 AC5)', () => {
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
 
     await waitFor(() => expect(screen.getByText('Garlic Butter Pasta')).toBeInTheDocument());
+  });
+});
+
+describe('RecipeBox favorites (TEST-123)', () => {
+  it('toggles a recipe favorite from its star, immediately (AC1)', async () => {
+    renderRecipeBox();
+    await waitFor(() => expect(screen.getByText('Chicken Stir Fry')).toBeInTheDocument());
+
+    // Held open deliberately: the real mock request has a 150ms simulated
+    // delay, and a test that returns before it settles leaks that pending
+    // timer into whichever test runs next in this file — its eventual
+    // resolution would mutate the shared mock recipe list out from under a
+    // later test. Awaiting settlement here keeps this test's side effect
+    // fully contained to itself.
+    let resolveSetFavorite!: (value: Recipe) => void;
+    const pending = new Promise<Recipe>((resolve) => {
+      resolveSetFavorite = resolve;
+    });
+    const setFavoriteSpy = vi.spyOn(recipesApi, 'setFavorite').mockReturnValueOnce(pending as never);
+
+    const star = screen.getByRole('button', { name: 'Favorite Chicken Stir Fry' });
+    expect(star).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(star);
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Unfavorite Chicken Stir Fry' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
+
+    resolveSetFavorite({
+      id: 'recipe-2',
+      title: 'Chicken Stir Fry',
+      ingredients: [],
+      steps: ['Slice chicken and vegetables'],
+      tags: ['weeknight'],
+      isFavorite: true,
+      createdAt: '2026-01-02T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    // Settling also triggers a real (unmocked) refetch of the list, which has
+    // its own 150ms mock delay — wait it out too, for the same reason.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    setFavoriteSpy.mockRestore();
+  });
+
+  it('"Favorites only" filters the list and combines with search rather than replacing it (AC3)', async () => {
+    renderRecipeBox();
+    await waitFor(() => expect(screen.getByText('Garlic Butter Pasta')).toBeInTheDocument());
+
+    // Garlic Butter Pasta is favorited in the mock fixtures, Chicken Stir Fry is not.
+    fireEvent.click(screen.getByLabelText('Favorites only'));
+
+    expect(screen.getByText('Garlic Butter Pasta')).toBeInTheDocument();
+    expect(screen.queryByText('Chicken Stir Fry')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/search by title or ingredient/i), {
+      target: { value: 'chicken' },
+    });
+
+    expect(screen.queryByText('Garlic Butter Pasta')).not.toBeInTheDocument();
+    expect(screen.queryByText('Chicken Stir Fry')).not.toBeInTheDocument();
+    expect(screen.getByText('No matches')).toBeInTheDocument();
+  });
+
+  it('shows an empty state explaining how to favorite a recipe when none are favorited (AC4)', async () => {
+    vi.spyOn(recipesApi, 'list').mockResolvedValueOnce([
+      {
+        id: 'recipe-1',
+        title: 'Garlic Butter Pasta',
+        ingredients: [],
+        steps: ['Boil pasta'],
+        tags: [],
+        isFavorite: false,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+    renderRecipeBox();
+    await waitFor(() => expect(screen.getByText('Garlic Butter Pasta')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText('Favorites only'));
+
+    expect(screen.getByText('No favorites yet')).toBeInTheDocument();
+    expect(screen.queryByText('Garlic Butter Pasta')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /show all recipes/i }));
+
+    expect(screen.getByText('Garlic Butter Pasta')).toBeInTheDocument();
   });
 });
 

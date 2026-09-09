@@ -18,13 +18,16 @@ Full CRUD, mounted in `backend/src/app.ts` and routed in `backend/src/routes/rec
 | `GET`    | `/api/recipes`     | Lists recipes                                                                           |
 | `GET`    | `/api/recipes/:id` | `404` when absent, `400` when the id is malformed                                       |
 | `PUT`    | `/api/recipes/:id` | Replaces the ingredient set rather than patching rows — the frontend form matches this  |
+| `PATCH`  | `/api/recipes/:id` | Body validated against a dedicated `{ isFavorite: boolean }` schema; `requireOwner`-protected like the other `:id` routes (TEST-123) |
 | `DELETE` | `/api/recipes/:id` | Reports whether a row existed; ingredient rows cascade                                  |
 
-Bodies go through `validateBody`, params through `validateParams`, and the boundary schemas are tied to `@mealbox/shared`'s `RecipeInput` with `satisfies` so they cannot drift from the contract.
+Bodies go through `validateBody`, params through `validateParams`, and the boundary schemas are tied to `@mealbox/shared`'s `RecipeInput` with `satisfies` so they cannot drift from the contract. `PATCH`'s schema is a separate, dedicated one (not tied to `RecipeInput`) — see Ownership below.
 
 Validation requires a non-empty title, at least one step and at least one ingredient. Tags may be empty, and unit may be empty because units are free text — a countable "2 onions" has no unit. The frontend form applies the same rules.
 
-**There is no search query parameter, deliberately** — recipe search filters client-side over the already-fetched list.
+**There is no search query parameter, deliberately** — recipe search filters client-side over the already-fetched list. The same is true of the "Favorites only" filter (TEST-123): `GET /api/recipes` already returns `isFavorite` on every recipe, so the filter combines with search entirely client-side.
+
+**`PUT` never writes `is_favorite`; only `PATCH` does.** TEST-123 owns that column exclusively, so a recipe's favorite state survives an unrelated edit through the form. This is enforced by using a separate schema for `PATCH`, not by extending `RecipeInput`.
 
 ### `/api/auth`
 

@@ -104,7 +104,7 @@ Do not fix someone else's contamination with `migrate:down` on shared state whil
 
 ## Current schema
 
-- `recipes` — id, title, steps `text[]`, tags `text[]`, is_favorite, timestamps
+- `recipes` — id, title, steps `text[]`, tags `text[]`, is_favorite, timestamps. `is_favorite` has existed on the table since the first migration, but `PATCH /api/recipes/:id` (TEST-123) is the only write path — `POST`/`PUT` never touch it, so a recipe's favorite state survives an unrelated edit.
 - `recipe_ingredients` — recipe_id → `recipes.id` `ON DELETE CASCADE`, name, quantity, unit, position
 - `shopping_lists` — id, timestamps
 - `shopping_list_items` — shopping_list_id → `shopping_lists.id` `ON DELETE CASCADE`, name, quantity, unit, checked, position, `quantity_edited` (added by TEST-76, additive migration)

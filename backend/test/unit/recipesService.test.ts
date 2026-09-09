@@ -84,6 +84,15 @@ describe('recipesService', () => {
     expect(result).toBe(true);
   });
 
+  it('setFavorite delegates to the repository, including null for a missing id', async () => {
+    vi.mocked(recipesRepository.setRecipeFavorite).mockResolvedValue(null);
+
+    const result = await recipesService.setFavorite(pool, 'missing-id', true);
+
+    expect(recipesRepository.setRecipeFavorite).toHaveBeenCalledWith(pool, 'missing-id', true);
+    expect(result).toBeNull();
+  });
+
   it('getRecipeOwnerId delegates to the repository', async () => {
     vi.mocked(recipesRepository.getRecipeOwnerId).mockResolvedValue('user-1');
 

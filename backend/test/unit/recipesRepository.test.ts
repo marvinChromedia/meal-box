@@ -2,7 +2,12 @@ import type { Pool } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
 import { ZodError } from 'zod';
 
-import { getRecipeById, getRecipeOwnerId, listRecipes } from '../../src/repositories/recipesRepository.js';
+import {
+  getRecipeById,
+  getRecipeOwnerId,
+  listRecipes,
+  setRecipeFavorite,
+} from '../../src/repositories/recipesRepository.js';
 
 function fakePool(rows: unknown[]): Pool {
   return { query: vi.fn().mockResolvedValue({ rows }) } as unknown as Pool;
@@ -74,5 +79,32 @@ describe('recipesRepository ownership scoping', () => {
   it('getRecipeOwnerId returns null when no recipe matches', async () => {
     const pool = fakePool([]);
     await expect(getRecipeOwnerId(pool, 'missing-id')).resolves.toBeNull();
+  });
+});
+
+describe('recipesRepository.setRecipeFavorite', () => {
+  it('sets is_favorite and returns the updated recipe', async () => {
+    const pool = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+        .mockResolvedValueOnce({ rows: [{ ...validRow, is_favorite: true }] }),
+    } as unknown as Pool;
+
+    const recipe = await setRecipeFavorite(pool, validRow.id, true);
+
+    expect(pool.query).toHaveBeenNthCalledWith(1, expect.stringContaining('is_favorite'), [
+      validRow.id,
+      true,
+    ]);
+    expect(recipe?.isFavorite).toBe(true);
+  });
+
+  it('returns null when no recipe matches the id', async () => {
+    const pool = { query: vi.fn().mockResolvedValueOnce({ rowCount: 0, rows: [] }) } as unknown as Pool;
+
+    const recipe = await setRecipeFavorite(pool, 'missing-id', true);
+
+    expect(recipe).toBeNull();
   });
 });

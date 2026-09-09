@@ -1,12 +1,13 @@
+import type { Recipe } from '@mealbox/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiClientError } from '../../lib/api/http';
 import { shoppingListApi } from '../shopping-list/api';
-import { recipesApi } from './api';
+import { __resetMockRecipesForTests, recipesApi } from './api';
 import { RecipeDetail } from './RecipeDetail';
 
 function renderRecipeDetail(path: string) {
@@ -27,6 +28,10 @@ function renderRecipeDetail(path: string) {
     { wrapper },
   );
 }
+
+beforeEach(() => {
+  __resetMockRecipesForTests();
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -125,6 +130,51 @@ describe('RecipeDetail (against the typed mock)', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Chicken Stir Fry' })).toBeInTheDocument();
+  });
+
+  it('toggles favorite from the header star and reflects immediately (TEST-123 AC2)', async () => {
+    renderRecipeDetail('/recipes/recipe-2');
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Chicken Stir Fry' })).toBeInTheDocument(),
+    );
+
+    // Held open deliberately: the real mock request has a 150ms simulated
+    // delay, and a test that returns before it settles leaks that pending
+    // timer into whichever test runs next in this file — its eventual
+    // resolution would mutate the shared mock recipe list out from under a
+    // later test.
+    let resolveSetFavorite!: (value: Recipe) => void;
+    const pending = new Promise<Recipe>((resolve) => {
+      resolveSetFavorite = resolve;
+    });
+    const setFavoriteSpy = vi.spyOn(recipesApi, 'setFavorite').mockReturnValueOnce(pending as never);
+
+    const star = screen.getByRole('button', { name: 'Favorite Chicken Stir Fry' });
+    expect(star).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(star);
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Unfavorite Chicken Stir Fry' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
+
+    resolveSetFavorite({
+      id: 'recipe-2',
+      title: 'Chicken Stir Fry',
+      ingredients: [],
+      steps: ['Slice chicken and vegetables'],
+      tags: ['weeknight'],
+      isFavorite: true,
+      createdAt: '2026-01-02T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    // Settling also triggers a real (unmocked) refetch, which has its own
+    // 150ms mock delay — wait it out too, for the same reason.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    setFavoriteSpy.mockRestore();
   });
 
   it('shows a not-found state for a recipe that does not exist, with a way back (AC5)', async () => {

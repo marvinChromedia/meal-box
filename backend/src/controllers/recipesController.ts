@@ -42,6 +42,18 @@ export function createRecipesController(pool: Pool) {
       res.json(recipe);
     },
 
+    async setFavorite(
+      req: Request<{ id: string }, unknown, { isFavorite: boolean }>,
+      res: Response,
+    ): Promise<void> {
+      const recipe = await recipesService.setFavorite(pool, req.params.id, req.body.isFavorite);
+      if (!recipe) {
+        res.status(404).json(RECIPE_NOT_FOUND);
+        return;
+      }
+      res.json(recipe);
+    },
+
     async deleteRecipe(req: Request<{ id: string }>, res: Response): Promise<void> {
       const deleted = await recipesService.deleteRecipe(pool, req.params.id);
       if (!deleted) {

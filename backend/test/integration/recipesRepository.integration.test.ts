@@ -8,6 +8,7 @@ import {
   getRecipeById,
   getRecipeOwnerId,
   listRecipes,
+  setRecipeFavorite,
   updateRecipe,
 } from '../../src/repositories/recipesRepository.js';
 import { createUser } from '../../src/repositories/usersRepository.js';
@@ -115,6 +116,27 @@ describe('recipesRepository (integration)', () => {
 
   it('returns null updating an id that does not exist, without writing anything', async () => {
     const result = await updateRecipe(pool, '11111111-1111-1111-1111-111111111111', sampleRecipe);
+    expect(result).toBeNull();
+  });
+
+  it('setRecipeFavorite sets is_favorite and survives an unrelated update (TEST-123)', async () => {
+    const created = await createRecipe(pool, sampleRecipe, userId);
+
+    const favorited = await setRecipeFavorite(pool, created.id, true);
+    expect(favorited?.isFavorite).toBe(true);
+
+    const updated = await updateRecipe(pool, created.id, {
+      ...sampleRecipe,
+      title: 'Tomato Soup (updated)',
+    });
+    expect(updated?.isFavorite).toBe(true);
+
+    const unfavorited = await setRecipeFavorite(pool, created.id, false);
+    expect(unfavorited?.isFavorite).toBe(false);
+  });
+
+  it('setRecipeFavorite returns null for an id that does not exist', async () => {
+    const result = await setRecipeFavorite(pool, '11111111-1111-1111-1111-111111111111', true);
     expect(result).toBeNull();
   });
 
