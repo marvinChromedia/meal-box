@@ -200,4 +200,95 @@ describe('RecipeBox selection mode (TEST-153)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Shopping list page')).toBeInTheDocument());
   });
+
+  it('marks the generate control busy while generating, and announces it in the live region', async () => {
+    let resolveGenerate!: (value: Awaited<ReturnType<typeof shoppingListApi.generate>>) => void;
+    vi.spyOn(shoppingListApi, 'generate').mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveGenerate = resolve;
+      }),
+    );
+
+    await enterSelectionMode();
+    fireEvent.click(screen.getByLabelText('Garlic Butter Pasta'));
+    fireEvent.click(screen.getByRole('button', { name: /generate shopping list/i }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generate' }));
+
+    const generateButton = screen.getByRole('button', { name: /generating/i });
+    expect(generateButton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByText(/generating shopping list/i)).toBeInTheDocument();
+
+    resolveGenerate({ id: 'shopping-list-1', items: [], createdAt: '', updatedAt: '' });
+    await waitFor(() => expect(screen.getByText('Shopping list page')).toBeInTheDocument());
+  });
+
+  it('clears a stale generate error when the user cancels out of selection mode', async () => {
+    vi.spyOn(shoppingListApi, 'generate').mockRejectedValueOnce(
+      new ApiClientError('boom', 'GENERATE_FAILED', 500),
+    );
+
+    await enterSelectionMode();
+    fireEvent.click(screen.getByLabelText('Garlic Butter Pasta'));
+    fireEvent.click(screen.getByRole('button', { name: /generate shopping list/i }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generate' }));
+
+    await waitFor(() => expect(screen.getByText("Couldn't generate the list")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(screen.queryByText("Couldn't generate the list")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /select recipes/i }));
+    expect(screen.queryByText("Couldn't generate the list")).not.toBeInTheDocument();
+  });
+
+  it('selects and clears all visible recipes with one control (extra scope)', async () => {
+    await enterSelectionMode();
+
+    fireEvent.click(screen.getByRole('button', { name: /select all shown/i }));
+    expect(screen.getByText('2 recipes selected')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /clear shown/i }));
+    expect(screen.getByText('0 recipes selected')).toBeInTheDocument();
+  });
+
+  it('"select all shown" only selects the currently search-filtered recipes (extra scope)', async () => {
+    await enterSelectionMode();
+
+    fireEvent.change(screen.getByLabelText(/search by title or ingredient/i), {
+      target: { value: 'chicken' },
+    });
+    expect(screen.queryByLabelText('Garlic Butter Pasta')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /select all shown/i }));
+    expect(screen.getByText('1 recipe selected')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/search by title or ingredient/i), {
+      target: { value: '' },
+    });
+    expect((screen.getByLabelText('Chicken Stir Fry') as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText('Garlic Butter Pasta') as HTMLInputElement).checked).toBe(false);
+  });
+
+  it('shows a removable chip for a recipe that stays selected after search hides it (extra scope)', async () => {
+    await enterSelectionMode();
+    fireEvent.click(screen.getByLabelText('Garlic Butter Pasta'));
+
+    fireEvent.change(screen.getByLabelText(/search by title or ingredient/i), {
+      target: { value: 'chicken' },
+    });
+
+    expect(screen.queryByLabelText('Garlic Butter Pasta')).not.toBeInTheDocument();
+    expect(screen.getByText('1 recipe selected')).toBeInTheDocument();
+    const removeButton = screen.getByRole('button', {
+      name: 'Remove Garlic Butter Pasta from selection',
+    });
+    expect(removeButton).toBeInTheDocument();
+
+    fireEvent.click(removeButton);
+
+    expect(screen.getByText('0 recipes selected')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Remove Garlic Butter Pasta from selection' }),
+    ).not.toBeInTheDocument();
+  });
 });

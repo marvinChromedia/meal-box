@@ -30,6 +30,18 @@ export function useRecipeSelection() {
 
   const isSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds]);
 
+  const selectAll = useCallback((ids: string[]) => {
+    setSelectedIds((current) => new Set([...current, ...ids]));
+  }, []);
+
+  const deselectAll = useCallback((ids: string[]) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    });
+  }, []);
+
   return {
     isSelectionMode,
     enterSelectionMode,
@@ -38,5 +50,7 @@ export function useRecipeSelection() {
     selectedCount: selectedIds.size,
     isSelected,
     toggleRecipe,
+    selectAll,
+    deselectAll,
   };
 }

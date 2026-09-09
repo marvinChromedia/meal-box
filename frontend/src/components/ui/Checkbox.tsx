@@ -8,6 +8,8 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
   label: string;
   /** 'lg' for a bigger tap target — e.g. a checklist used one-handed. Default 'sm'. */
   size?: CheckboxSize;
+  /** Keeps `label` as the checkbox's accessible name but visually hides it — for when adjacent content already shows the same text. Default false. */
+  hideLabel?: boolean;
 }
 
 const SIZE_CLASSES: Record<CheckboxSize, { box: string; label: string; gap: string }> = {
@@ -15,7 +17,7 @@ const SIZE_CLASSES: Record<CheckboxSize, { box: string; label: string; gap: stri
   lg: { box: 'h-6 w-6', label: 'text-base', gap: 'gap-3' },
 };
 
-export function Checkbox({ label, id, className, size = 'sm', ...props }: CheckboxProps) {
+export function Checkbox({ label, id, className, size = 'sm', hideLabel = false, ...props }: CheckboxProps) {
   const generatedId = useId();
   const checkboxId = id ?? generatedId;
   const sizeClasses = SIZE_CLASSES[size];
@@ -32,7 +34,10 @@ export function Checkbox({ label, id, className, size = 'sm', ...props }: Checkb
         )}
         {...props}
       />
-      <label htmlFor={checkboxId} className={clsx('text-ink-muted', sizeClasses.label)}>
+      <label
+        htmlFor={checkboxId}
+        className={hideLabel ? 'sr-only' : clsx('text-ink-muted', sizeClasses.label)}
+      >
         {label}
       </label>
     </div>

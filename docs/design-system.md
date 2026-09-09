@@ -112,10 +112,12 @@ Props: standard `<input type="checkbox">` attributes, plus:
 
 - `label` (required)
 - `size`: `sm` (default) | `lg` — `lg` for a bigger tap target, e.g. a checklist used one-handed (TEST-77)
+- `hideLabel` (default `false`) — keeps `label` as the accessible name but visually hides it, for when adjacent content already shows the same text (TEST-153's `RecipeListItem`: the card right next to the checkbox already shows the recipe title)
 
 ```tsx
 <Checkbox label="Mark as favorite" defaultChecked />
 <Checkbox label="Milk — 1 gallon" size="lg" />
+<Checkbox label="Garlic Fried Rice" hideLabel size="lg" />
 ```
 
 ## Radio
@@ -157,6 +159,14 @@ Container with optional header/body/footer slots — compose the pieces you need
   <CardFooter>Added 2 days ago</CardFooter>
 </Card>
 ```
+
+### Selected-card pattern (TEST-153)
+
+A card in a selectable list (`RecipeListItem.tsx`) combines a `Checkbox` — the actual state, never colour alone — with `ring-2 ring-accent` on the `Card` when selected, and `focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2` on the row wrapper so keyboard focus highlights the whole row, not just the small checkbox box. The whole row is one click/tap target and one tab stop: an invisible, empty `<label htmlFor>` sharing the checkbox's id is stretched (`absolute inset-0`) over the row, rather than a second wrapping `<button>` that would duplicate the checkbox's own toggle and its own tab stop. The checkbox's own `label` is passed with `hideLabel` — the card already shows the recipe title, so the checkbox stays labeled for assistive technology without repeating the title visibly.
+
+### Removable chip pattern (TEST-153)
+
+`HiddenSelectionSummary.tsx` composes a `Badge` with an inline remove `<button aria-label="Remove {title} from selection">×</button>` to show and clear a selection that's no longer visible (e.g. filtered out by search) without a dedicated chip component.
 
 ## Alert
 

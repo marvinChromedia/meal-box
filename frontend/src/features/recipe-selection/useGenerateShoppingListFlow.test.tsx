@@ -9,7 +9,11 @@ vi.mock('../shopping-list/hooks');
 const mockUseShoppingList = vi.mocked(shoppingListHooks.useShoppingList);
 const mockUseGenerateShoppingList = vi.mocked(shoppingListHooks.useGenerateShoppingList);
 
-function mockShoppingListQuery(overrides: { isSuccess: boolean; isLoading?: boolean; data?: object }) {
+function mockShoppingListQuery(overrides: {
+  isSuccess: boolean;
+  isLoading?: boolean;
+  data?: object;
+}) {
   mockUseShoppingList.mockReturnValue({
     isSuccess: overrides.isSuccess,
     isLoading: overrides.isLoading ?? false,
@@ -21,13 +25,15 @@ function mockGenerateMutation(
   overrides: { isPending?: boolean; isSuccess?: boolean; error?: Error | null } = {},
 ) {
   const mutate = vi.fn();
+  const reset = vi.fn();
   mockUseGenerateShoppingList.mockReturnValue({
     mutate,
+    reset,
     isPending: overrides.isPending ?? false,
     isSuccess: overrides.isSuccess ?? false,
     error: overrides.error ?? null,
   } as unknown as ReturnType<typeof shoppingListHooks.useGenerateShoppingList>);
-  return mutate;
+  return { mutate, reset };
 }
 
 describe('useGenerateShoppingListFlow', () => {
@@ -37,7 +43,7 @@ describe('useGenerateShoppingListFlow', () => {
 
   it('generates immediately when no list exists yet, no confirmation', () => {
     mockShoppingListQuery({ isSuccess: false });
-    const mutate = mockGenerateMutation();
+    const { mutate } = mockGenerateMutation();
 
     const { result } = renderHook(() => useGenerateShoppingListFlow({ recipeIds: ['recipe-1'] }));
 
@@ -48,8 +54,11 @@ describe('useGenerateShoppingListFlow', () => {
   });
 
   it('opens the AC5 confirmation instead of generating when a list already exists', () => {
-    mockShoppingListQuery({ isSuccess: true, data: { id: 'list-1', items: [], createdAt: '', updatedAt: '' } });
-    const mutate = mockGenerateMutation();
+    mockShoppingListQuery({
+      isSuccess: true,
+      data: { id: 'list-1', items: [], createdAt: '', updatedAt: '' },
+    });
+    const { mutate } = mockGenerateMutation();
 
     const { result } = renderHook(() => useGenerateShoppingListFlow({ recipeIds: ['recipe-1'] }));
 
@@ -60,10 +69,15 @@ describe('useGenerateShoppingListFlow', () => {
   });
 
   it('generates on confirm and closes the confirmation', () => {
-    mockShoppingListQuery({ isSuccess: true, data: { id: 'list-1', items: [], createdAt: '', updatedAt: '' } });
-    const mutate = mockGenerateMutation();
+    mockShoppingListQuery({
+      isSuccess: true,
+      data: { id: 'list-1', items: [], createdAt: '', updatedAt: '' },
+    });
+    const { mutate } = mockGenerateMutation();
 
-    const { result } = renderHook(() => useGenerateShoppingListFlow({ recipeIds: ['recipe-1', 'recipe-2'] }));
+    const { result } = renderHook(() =>
+      useGenerateShoppingListFlow({ recipeIds: ['recipe-1', 'recipe-2'] }),
+    );
 
     act(() => result.current.requestGenerate());
     act(() => result.current.confirmGenerate());
@@ -73,8 +87,11 @@ describe('useGenerateShoppingListFlow', () => {
   });
 
   it('cancelling the confirmation never generates', () => {
-    mockShoppingListQuery({ isSuccess: true, data: { id: 'list-1', items: [], createdAt: '', updatedAt: '' } });
-    const mutate = mockGenerateMutation();
+    mockShoppingListQuery({
+      isSuccess: true,
+      data: { id: 'list-1', items: [], createdAt: '', updatedAt: '' },
+    });
+    const { mutate } = mockGenerateMutation();
 
     const { result } = renderHook(() => useGenerateShoppingListFlow({ recipeIds: ['recipe-1'] }));
 
@@ -103,5 +120,15 @@ describe('useGenerateShoppingListFlow', () => {
     const { result } = renderHook(() => useGenerateShoppingListFlow({ recipeIds: ['recipe-1'] }));
 
     expect(result.current.isGenerated).toBe(true);
+  });
+
+  it("resetError delegates to the mutation's own reset, so a stale error can be cleared", () => {
+    mockShoppingListQuery({ isSuccess: false });
+    const { reset } = mockGenerateMutation({ error: new Error('boom') });
+
+    const { result } = renderHook(() => useGenerateShoppingListFlow({ recipeIds: ['recipe-1'] }));
+    act(() => result.current.resetError());
+
+    expect(reset).toHaveBeenCalledOnce();
   });
 });

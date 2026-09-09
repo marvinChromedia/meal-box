@@ -16,11 +16,11 @@ Confirmed with the coordinating session before any code was written, and already
 - **`frontend/src/features/recipe-selection/useGenerateShoppingListFlow.ts`** (built ahead of TEST-73 merging, now wired in) — orchestrates AC3/AC5: opens the confirmation when a list already exists, generates immediately otherwise, exposes `isGenerated` for the caller to navigate on success.
 - **`frontend/src/features/recipe-selection/GenerateConfirmationModal.tsx`** — the AC5 confirmation, reusing `Modal`/`Button`. Worded as the merge TEST-76 actually performs, not a destructive wipe — copy matches TEST-76's recorded decision point for point: amounts refresh, a hand-corrected amount is kept, ticked items stay ticked, manual additions are untouched.
 
-Nothing new added to `components/ui/`, `/design`, or `docs/design-system.md` — everything here is composed from what already existed (`Checkbox`, `Button`, `Modal`, `Card`, `Badge`).
+Originally, nothing new was added to `components/ui/`, `/design`, or `docs/design-system.md` — everything was composed from what already existed (`Checkbox`, `Button`, `Modal`, `Card`, `Badge`). The revisit below adds one small feature-local component (`HiddenSelectionSummary.tsx`, still composed from `Badge` — not a new `components/ui/` primitive) and documents two new patterns in `docs/design-system.md`.
 
-## AC3: navigating to `/shopping-list` before the screen exists
+## AC3: navigating to `/shopping-list`
 
-`RecipeBox` calls `navigate('/shopping-list')` once `useGenerateShoppingListFlow`'s `isGenerated` flips true. **`App.tsx` has no route registered for `/shopping-list`** — this is the same situation TEST-73 left for TEST-74 with `/recipes/:id`, and it's intentional for the same reason: the navigation is this ticket's responsibility, the screen it lands on is TEST-77's. Visiting that path currently renders nothing. **TEST-77 needs to add `<Route path="/shopping-list" .../>` to `App.tsx`** — the navigation is already wired and won't need to change.
+`RecipeBox` calls `navigate('/shopping-list')` once `useGenerateShoppingListFlow`'s `isGenerated` flips true. At the time this ticket first shipped, `App.tsx` had no route registered for `/shopping-list` yet (the same situation TEST-73 left for TEST-74 with `/recipes/:id`) — **TEST-77 has since added it**, so this note is historical, not a live gap.
 
 ## AC1/AC2/AC4 behaviour
 
@@ -52,3 +52,24 @@ Nothing new added to `components/ui/`, `/design`, or `docs/design-system.md` —
 This ticket's definition of done calls for a Playwright spec (select two recipes against the real stack, generate, land on the list). No E2E framework is installed — this is CLAUDE.md §9's third case, not "not applicable": the layer genuinely applies and cannot be written until a runner exists.
 
 **Deferred to [TEST-232](https://beacon.chro.media/browse/TEST-232)** ("Land the Playwright end-to-end test harness"), which already carries TEST-73's and TEST-157's deferred coverage and will carry TEST-153's as its third. All four conditions hold: the blocker (no runner) is outside this ticket's scope; TEST-232 exists, is owned by the coordinating session, and lists this debt; this doc and the ticket's completion comment both name it; the coordinating session has agreed to the deferral pattern.
+
+## Revisited: UI-quality and accessibility pass
+
+TEST-153 was reopened for a UI-quality/accessibility improvement pass — no acceptance criterion above changed or regressed; this fixes how they were implemented and adds two small, explicitly agreed capabilities.
+
+**Defects fixed:**
+
+- `RecipeListItem.tsx` rendered a `Checkbox` **and** a sibling wrapping `<button>`, both independently toggling the same state — two tab stops per row. Replaced with the stretched-label pattern (see `docs/design-system.md`'s "Selected-card pattern"): one `<input type="checkbox">`, one tab stop per row.
+- The checkbox's `className` override (`h-5 w-5`) fought the component's own default size classes — replaced with the existing `size="lg"` prop.
+- The selected-card ring and both focus-visible rings used a leftover `ring-blue-*` that predated the app's warm/accent theme — migrated to `ring-accent`.
+- A failed Generate attempt's error `Alert` persisted after Cancel — `useGenerateShoppingListFlow` now exposes `resetError()`, called from Cancel.
+- The selection bar used the page-background token (`bg-ground`) and no elevation, reading as flat; now uses `bg-surface` + `shadow-soft` (matching `Card`) and is `sticky top-0` so it stays reachable while scrolling a long list.
+- The Generate button now carries `aria-busy` while generating, and the existing `aria-live` count region also announces the busy state — not just the button's own text swap.
+- The recipe title appeared twice per row — once as the checkbox's visible label, once in the card's header right next to it. `Checkbox` gained a `hideLabel` prop (visually hides the label, keeps it as the accessible name); `RecipeListItem` passes it so the title now shows once, still labeling the checkbox for assistive technology.
+
+**Capabilities added (confirmed in scope with the user, not new ACs on the story):**
+
+- **Select all / clear all shown** — a control in the selection bar that selects or clears exactly the currently search-filtered recipes, never ones hidden by an active search term.
+- **Hidden-selection visibility** — `HiddenSelectionSummary.tsx` shows a removable chip for any recipe that stays selected after search filters it out of view, so selection state is never invisible.
+
+**Tests added/updated:** `RecipeListItem.test.tsx` (new), `HiddenSelectionSummary.test.tsx` (new), `useRecipeSelection.test.ts` (`selectAll`/`deselectAll`), `useGenerateShoppingListFlow.test.tsx` (`resetError`), `RecipeBox.test.tsx` (stale-error-cleared-on-cancel, `aria-busy`/live-region wording, select-all/clear-all respecting search, hidden-selection chip). No layer's scope or status changed from the original ticket — still frontend-only, E2E still deferred to TEST-232.

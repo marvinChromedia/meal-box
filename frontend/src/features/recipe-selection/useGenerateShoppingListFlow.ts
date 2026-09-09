@@ -17,6 +17,8 @@ export interface UseGenerateShoppingListFlowResult {
   /** True once generation has succeeded — callers use this to move to the shopping list screen (AC3). */
   isGenerated: boolean;
   generateError: Error | null;
+  /** Clears a previous attempt's error — call when leaving selection mode so a stale failure doesn't linger into the next attempt. */
+  resetError: () => void;
 }
 
 /**
@@ -24,7 +26,9 @@ export interface UseGenerateShoppingListFlowResult {
  * warning first if a list already exists (regeneration merges into it rather
  * than replacing it — see TEST-76's binding decision).
  */
-export function useGenerateShoppingListFlow(input: GenerateShoppingListInput): UseGenerateShoppingListFlowResult {
+export function useGenerateShoppingListFlow(
+  input: GenerateShoppingListInput,
+): UseGenerateShoppingListFlowResult {
   const [isConfirmOpen, setConfirmOpen] = useState(false);
   const shoppingListQuery = useShoppingList();
   const generateMutation = useGenerateShoppingList();
@@ -58,5 +62,6 @@ export function useGenerateShoppingListFlow(input: GenerateShoppingListInput): U
     isGenerating: generateMutation.isPending,
     isGenerated: generateMutation.isSuccess,
     generateError: generateMutation.error,
+    resetError: () => generateMutation.reset(),
   };
 }

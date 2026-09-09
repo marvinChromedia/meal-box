@@ -47,4 +47,24 @@ describe('useRecipeSelection', () => {
     expect(result.current.isSelectionMode).toBe(false);
     expect(result.current.selectedCount).toBe(0);
   });
+
+  it('selectAll adds every given id without clearing ids already selected', () => {
+    const { result } = renderHook(() => useRecipeSelection());
+
+    act(() => result.current.enterSelectionMode());
+    act(() => result.current.toggleRecipe('recipe-1'));
+    act(() => result.current.selectAll(['recipe-2', 'recipe-3']));
+
+    expect(result.current.selectedIds.sort()).toEqual(['recipe-1', 'recipe-2', 'recipe-3']);
+  });
+
+  it('deselectAll removes only the given ids, leaving the rest selected', () => {
+    const { result } = renderHook(() => useRecipeSelection());
+
+    act(() => result.current.enterSelectionMode());
+    act(() => result.current.selectAll(['recipe-1', 'recipe-2', 'recipe-3']));
+    act(() => result.current.deselectAll(['recipe-2', 'recipe-3']));
+
+    expect(result.current.selectedIds).toEqual(['recipe-1']);
+  });
 });

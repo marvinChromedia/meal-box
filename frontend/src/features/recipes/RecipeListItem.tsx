@@ -18,12 +18,23 @@ export interface RecipeSelectionState {
  *
  * With `selection` set (TEST-153's selection mode), the row toggles instead
  * of navigating — a checkbox carries the selected state (per AC1, not colour
- * alone) alongside a highlighted border as a secondary cue.
+ * alone) alongside a highlighted border as a secondary cue. The checkbox's
+ * own label is visually hidden (`hideLabel`) since the card right next to it
+ * already shows the recipe title — it stays the checkbox's accessible name.
  */
-export function RecipeListItem({ recipe, selection }: { recipe: Recipe; selection?: RecipeSelectionState }) {
+export function RecipeListItem({
+  recipe,
+  selection,
+}: {
+  recipe: Recipe;
+  selection?: RecipeSelectionState;
+}) {
   const card = (
     <Card
-      className={clsx('transition-shadow hover:shadow-md', selection?.selected && 'ring-2 ring-blue-600')}
+      className={clsx(
+        'transition-shadow hover:shadow-md',
+        selection?.selected && 'ring-2 ring-accent',
+      )}
     >
       <CardHeader>{recipe.title}</CardHeader>
       <CardBody>
@@ -43,21 +54,27 @@ export function RecipeListItem({ recipe, selection }: { recipe: Recipe; selectio
   );
 
   if (selection) {
+    const checkboxId = `recipe-checkbox-${recipe.id}`;
     return (
-      <div className="flex items-start gap-3">
+      <div className="relative flex items-start gap-3 rounded-card focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2">
         <Checkbox
+          id={checkboxId}
           label={recipe.title}
+          hideLabel
           checked={selection.selected}
           onChange={selection.onToggle}
-          className="mt-4 h-5 w-5 shrink-0"
+          size="lg"
+          className="mt-4 shrink-0"
         />
-        <button
-          type="button"
-          onClick={selection.onToggle}
-          className="flex-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-        >
-          {card}
-        </button>
+        {/* Stretched label: makes the whole row one click/tap target and one
+            tab stop, instead of a separate wrapping <button> duplicating the
+            checkbox's own toggle (and its own tab stop). */}
+        <label
+          htmlFor={checkboxId}
+          aria-hidden="true"
+          className="absolute inset-0 cursor-pointer rounded-card"
+        />
+        <div className="flex-1">{card}</div>
       </div>
     );
   }
@@ -65,7 +82,7 @@ export function RecipeListItem({ recipe, selection }: { recipe: Recipe; selectio
   return (
     <Link
       to={`/recipes/${recipe.id}`}
-      className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+      className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
     >
       {card}
     </Link>
